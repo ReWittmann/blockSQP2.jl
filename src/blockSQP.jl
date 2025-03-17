@@ -16,6 +16,21 @@ module blockSQP
 
 	export setindex!
 
+    function __lowerbounds(x::AbstractVector)
+        return x
+    end
+    function __upperbounds(x::AbstractVector)
+        return x
+    end
+    function __initial_values(x::AbstractVector)
+        return x
+    end
+
+    """
+    Struct to hold Optimization.jl solver.
+    """
+    struct BlockSQPOpt end
+    export BlockSQPOpt
 
     include("eval.jl")
 
@@ -27,7 +42,5 @@ module blockSQP
     include("utils.jl")
 
     include("solver.jl")
-
-
 
 end # module blockSQP
