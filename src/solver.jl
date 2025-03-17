@@ -4,8 +4,8 @@ struct Solver
     BSQP_options::SQPoptions
     BSQP_stats::SQPstats
     Jul_Problem::blockSQPProblem
-    Options::Dict
-    Solver(J_prob::blockSQPProblem, param::Dict, cxx_stats::SQPstats) = begin
+    Options::BlockSQPOptions
+    Solver(J_prob::blockSQPProblem, opts::BlockSQPOptions, cxx_stats::SQPstats) = begin
         #Create problem class on the C++ side
         cxx_prob = Problemform(J_prob.nVar, J_prob.nCon)
         set_scope(cxx_prob, pointer_from_objref(J_prob))
@@ -20,12 +20,12 @@ struct Solver
         set_bounds(cxx_prob, J_prob.lb_var, J_prob.ub_var, J_prob.lb_con, J_prob.ub_con, J_prob.objLo, J_prob.objUp)
 
         #Create options class on the C++ side
-        cxx_opts = BSQP_options(param)
+        cxx_opts = set_cxx_options(opts)
 
         #Create method class on the C++ side
         cxx_method = SQPmethod(CxxPtr(cxx_prob), CxxPtr(cxx_opts), CxxPtr(cxx_stats))
 
-        new(cxx_method, cxx_prob, cxx_opts, cxx_stats, J_prob, param)
+        new(cxx_method, cxx_prob, cxx_opts, cxx_stats, J_prob, opts)
     end
 end
 
@@ -34,8 +34,8 @@ function init(meth::Solver)
     cpp_init(meth.BSQP_solver)
 end
 
-function run(meth::Solver, maxIt::Int32, warmStart::Int32)
-    return cpp_run(meth.BSQP_solver, maxIt, warmStart)
+function run(meth::Solver, maxIt::Int, warmStart::Int)
+    return cpp_run(meth.BSQP_solver, Int32(maxIt), Int32(warmStart))
 end
 
 function finish(meth::Solver)

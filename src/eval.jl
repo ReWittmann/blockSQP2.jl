@@ -3,8 +3,8 @@ function initialize_dense(Prob::Ptr{Nothing}, xi::CxxPtr{Float64}, lam::CxxPtr{F
     xi_arr = unsafe_wrap(Array{Float64, 1}, xi.cpp_object, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Float64, 1}, lam.cpp_object, Jprob.nVar + Jprob.nCon, own = false)
 
-    xi_arr[:] = Jprob.x_start
-    lam_arr[:] = Jprob.lam_start
+    xi_arr[:] = Jprob.x0
+    lam_arr[:] = Jprob.lambda0
     return
 end
 
@@ -16,7 +16,7 @@ function evaluate_dense(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Const
     constr_arr = unsafe_wrap(Array{Float64, 1}, constr.cpp_object, Jprob.nCon, own = false)
 
     objval[] = Jprob.f(xi_arr)
-    constr_arr[:] = Jprob.g(xi_arr)
+    constr_arr[:] .= Jprob.g(xi_arr)
 
     if dmode > 0
         gradObj_arr = unsafe_wrap(Array{Float64, 1}, gradObj.cpp_object, Jprob.nVar, own = false)
@@ -54,7 +54,7 @@ function evaluate_simple(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, objval::C
     constr_arr = unsafe_wrap(Array{Float64, 1}, constr.cpp_object, Jprob.nCon, own = false)
 
     objval[] = Jprob.f(xi_arr)
-    constr_arr[:] = Jprob.g(xi_arr)
+    constr_arr[:] .= Jprob.g(xi_arr)
 
     info[] = Int32(0);
     return
@@ -68,8 +68,8 @@ function initialize_sparse(Prob::Ptr{Nothing}, xi::CxxPtr{Float64}, lam::CxxPtr{
     jac_row_arr = unsafe_wrap(Array{Int32, 1}, jac_row.cpp_object, Jprob.nnz, own = false)
     jac_colind_arr = unsafe_wrap(Array{Int32, 1}, jac_colind.cpp_object, Jprob.nVar + 1, own = false)
 
-    xi_arr[:] = Jprob.x_start
-    lam_arr[:] = Jprob.lam_start
+    xi_arr[:] = Jprob.x0
+    lam_arr[:] = Jprob.lambda0
     jac_row_arr[:] = Jprob.jac_g_row
     jac_colind_arr[:] = Jprob.jac_g_colind
     return

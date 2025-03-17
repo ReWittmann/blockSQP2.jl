@@ -11,7 +11,7 @@ module blockSQP
 		@initcxx
 	end
 
-	function fnothing()
+	function fnothing(args...)
 	end
 
 	export setindex!
@@ -22,7 +22,7 @@ module blockSQP
     include("problem.jl")
 
     include("options.jl")
-    export blockSQP_options
+    export BlockSQPOptions
 
     include("utils.jl")
 

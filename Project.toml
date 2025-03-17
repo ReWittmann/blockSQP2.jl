@@ -9,4 +9,3 @@ blockSQP_jll = "fec014c7-73d5-5f83-866b-eea102cb7f01"
 
 [compat]
 CxxWrap = "0.16.0"
-blockSQP_jll = "0.0.1"
