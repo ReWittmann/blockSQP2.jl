@@ -22,7 +22,7 @@ function evaluate_dense(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Const
         gradObj_arr = unsafe_wrap(Array{Float64, 1}, gradObj.cpp_object, Jprob.nVar, own = false)
         constrJac_arr = unsafe_wrap(Array{Float64, 2}, constrJac.cpp_object, (Jprob.nCon, Jprob.nVar), own = false)
         gradObj_arr[:] = Jprob.grad_f(xi_arr)
-        constrJac_arr[:,:] = Jprob.jac_g(xi_arr)
+        constrJac_arr[:,:] .= Jprob.jac_g(xi_arr)
 
         if dmode == 2
             hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)

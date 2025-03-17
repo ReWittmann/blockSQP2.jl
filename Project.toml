@@ -7,5 +7,26 @@ version = "0.1.0"
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
 blockSQP_jll = "fec014c7-73d5-5f83-866b-eea102cb7f01"
 
+[weakdeps]
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+
+[extensions]
+OptimizationExtension = "Optimization"
+ComponentArraysExtension = "ComponentArrays"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+
 [compat]
 CxxWrap = "0.16.0"
+Test = "1"
+Optimization = "~3.19.0, 4"
+ComponentArrays = "0.15"
+julia = "1.9"
+
+[targets]
+test = ["Test", "Optimization", "ComponentArrays", "ForwardDiff"]

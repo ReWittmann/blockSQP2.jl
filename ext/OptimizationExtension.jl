@@ -57,7 +57,11 @@ function SciMLBase.__solve(prob::OptimizationProblem,
     num_cons = prob.ucons === nothing ? 0 : length(prob.ucons)
     num_x = length(prob.u0)
     T = eltype(prob.u0)
-    f = Optimization.instantiate_function(prob.f, prob.u0, prob.f.adtype, prob.p, num_cons)
+    reinit_cache = OptimizationBase.ReInitCache(prob.u0, prob.p) # everything that can be changed via `reinit`
+    f = Optimization.instantiate_function(
+        prob.f, reinit_cache, prob.f.adtype, num_cons;
+        g = true, h = true, cons_j = true, cons_h = true)
+
 
     _loss = function (θ)
         x = f.f(θ, prob.p)
@@ -66,8 +70,8 @@ function SciMLBase.__solve(prob::OptimizationProblem,
 
     _g = function(θ)
         g_ = similar(θ)
-        g = f.grad(g_, θ)
-        return g
+        f.grad(g_, θ)
+        return g_
     end
 
     _cons = num_cons > 0  ? function(θ)
@@ -78,8 +82,8 @@ function SciMLBase.__solve(prob::OptimizationProblem,
 
     _jac_cons = num_cons > 0 ? function(θ)
         J = zeros(eltype(θ), num_cons, num_x)
-        jac_c = f.cons_j(J, θ)
-        return jac_c
+        f.cons_j(J, θ)
+        return J
     end : x -> zeros(eltype(x), 1, num_x)
 
     num_cons = max(1, num_cons)
