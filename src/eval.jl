@@ -84,7 +84,7 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Cons
     jac_nz_arr = unsafe_wrap(Array{Float64, 1}, jac_nz.cpp_object, Jprob.nnz, own = false)
 
     objval[] = Jprob.f(xi_arr)
-    constr_arr[:] = Jprob.g(xi_arr)
+    constr_arr[:] .= Jprob.g(xi_arr)
 
     if dmode > 0
         gradObj_arr = unsafe_wrap(Array{Float64, 1}, gradObj.cpp_object, Jprob.nVar, own = false)

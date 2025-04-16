@@ -2,6 +2,7 @@ using blockSQP
 using Test
 using Optimization
 using ForwardDiff
+using OptimizationMOI, Ipopt
 using Test
 
 @testset "Optimization.jl " begin
@@ -25,4 +26,19 @@ using Test
         @test isapprox(sol.u, ones(2))
     end
 
+    @testset "Lagrange multiplier" begin
+        lin_ex(x,p) = sum(x)
+        function cons_unit(res,x,p)
+            res .= sum(x.^2)
+        end
+        x0 = ones(2)
+
+        optprob_lin = OptimizationFunction(lin_ex, Optimization.AutoForwardDiff(), cons=cons_unit)
+        prob_lin = OptimizationProblem(optprob_lin, x0, [], lcons=[1.0], ucons=[1.0])
+
+        sol_bsqp = solve(prob_lin, BlockSQPOpt())
+        sol_ipopt = solve(prob_lin, Ipopt.Optimizer())
+
+        @test isapprox(abs.(sol_bsqp.original.multiplier), abs.(sol_ipopt.original.inner.mult_g))
+    end
 end

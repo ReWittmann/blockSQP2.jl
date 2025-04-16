@@ -34,7 +34,7 @@ function init(meth::Solver)
     cpp_init(meth.BSQP_solver)
 end
 
-function run(meth::Solver, maxIt::Int, warmStart::Int)
+function run(meth::Solver, maxIt::Integer, warmStart::Integer)
     return cpp_run(meth.BSQP_solver, Int32(maxIt), Int32(warmStart))
 end
 
@@ -49,7 +49,7 @@ function get_primal_solution(meth::Solver)
 end
 
 function get_dual_solution(meth::Solver)
-    lam_ptr = get_primal(meth.BSQP_solver)
+    lam_ptr = get_dual(meth.BSQP_solver)
     lam_arr = unsafe_wrap(Array{Float64, 1}, lam_ptr.cpp_object, meth.Jul_Problem.nVar + meth.Jul_Problem.nCon, own = false)
     return copy(lam_arr[meth.Jul_Problem.nVar+1:end])
 end
