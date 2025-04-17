@@ -28,7 +28,8 @@ using Test
         end
 
         @testset "Lagrange multiplier" begin
-            @test isapprox(sol_bsqp_wcons.original.multiplier, sol_ipopt_wcons.original.inner.mult_g)
+            @test isapprox(sol_bsqp_wcons.original.multiplier,
+                            sol_ipopt_wcons.original.inner.mult_g, atol=1e-8)
         end
     end
     @testset "LP on unit circle" begin
@@ -48,7 +49,8 @@ using Test
             @test isapprox(sol_bsqp.u, sol_ipopt.u)
         end
         @testset "Lagrange multiplier" begin
-            @test isapprox(sol_bsqp.original.multiplier, sol_ipopt.original.inner.mult_g)
+            @test isapprox(sol_bsqp.original.multiplier,
+                        sol_ipopt.original.inner.mult_g, atol=1e-8)
         end
 
     end

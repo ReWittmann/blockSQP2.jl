@@ -51,5 +51,5 @@ end
 function get_dual_solution(meth::Solver)
     lam_ptr = get_dual(meth.BSQP_solver)
     lam_arr = unsafe_wrap(Array{Float64, 1}, lam_ptr.cpp_object, meth.Jul_Problem.nVar + meth.Jul_Problem.nCon, own = false)
-    return copy(lam_arr[meth.Jul_Problem.nVar+1:end])
+    return copy(-lam_arr[meth.Jul_Problem.nVar+1:end])
 end
