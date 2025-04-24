@@ -2,8 +2,9 @@ module blockSQP
 	import Base.setproperty!, Base.getproperty
 
 	using CxxWrap
-    using blockSQP_jll
-	@readmodule(()->libblockSQP_wrapper)
+    using OpenBLAS32
+    using blockSQP_mumps_jll
+	@readmodule(()->libblockSQP_MUMPS_wrapper)
 	@wraptypes
 	@wrapfunctions
 
