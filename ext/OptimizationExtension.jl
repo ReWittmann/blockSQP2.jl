@@ -18,6 +18,7 @@ function __map_optimizer_args!(prob::OptimizationProblem, opt::blockSQP.BlockSQP
     maxtime::Union{Number, Nothing} = nothing,
     abstol::Union{Number, Nothing} = nothing,
     reltol::Union{Number, Nothing} = nothing,
+    sparsity::Union{Bool, AbstractVector{Int}},
     kwargs...)
 
     if !isnothing(maxiters)
@@ -36,15 +37,29 @@ function __map_optimizer_args!(prob::OptimizationProblem, opt::blockSQP.BlockSQP
         opt.opttol = abstol
     end
 
-    @info kwargs
-
-    if :sparsity ∈ keys(kwargs)
+    if sparsity != false
         opt.hessUpdate = 1
         opt.sparseQP = 2
-        @info "inside map:" opt.sparseQP opt.hessUpdate
     end
 
     return nothing
+end
+
+function find_blocks_from_csc(A::SparseDiffTools.SparseArrays.SparseMatrixCSC)
+    n = size(A,1) # assume quadratic matrix here, since it is a hessian
+    blockIdx = [0]
+    max_row = zeros(n)
+    for i=1:n
+        col_start, col_end = A.colptr[i], A.colptr[i+1]-1
+        max_row[i] = maximum(A.rowval[col_start:col_end])
+    end
+
+    for i=1:n
+        if max_row[i] <= i
+            append!(blockIdx, i)
+        end
+    end
+    return blockIdx
 end
 
 function SciMLBase.__solve(prob::OptimizationProblem,
@@ -55,6 +70,7 @@ function SciMLBase.__solve(prob::OptimizationProblem,
     abstol::Union{Number, Nothing} = nothing,
     reltol::Union{Number, Nothing} = nothing,
     progress = false,
+    sparsity::Union{Bool, AbstractVector{Int}}=false,
     options::Union{Nothing,blockSQP.BlockSQPOptions} = nothing,
     kwargs...)
 
@@ -77,8 +93,24 @@ function SciMLBase.__solve(prob::OptimizationProblem,
         end
     end
 
-    sparsity_defined = :sparsity ∈ keys(kwargs)
-    blocks_hess = get(kwargs, :sparsity, [0, num_x])
+    sparsity_defined = sparsity != false
+    blocks_hess = begin
+        if isa(sparsity, Bool)
+            lag(x, mu) = begin
+                fx = f.f(x, prob.p)
+                g = zeros(eltype(x), num_cons)
+                f.cons(g, x)
+                return fx + sum(mu .* g)
+            end
+            input = Vector{Float64}(undef, num_x);
+            sparse_hess = Symbolics.hessian_sparsity(x -> lag(x, ones(num_cons)), input)
+            find_blocks_from_csc(sparse_hess)
+        else
+            @assert length(sparsity) == num_x + 1
+            @assert (sparsity[0] == 0) && (sparsity[end] == num_x) "sparsity[1] must be 0, sparsity[num_vars+1] must be num_vars"
+            sparsity
+        end
+    end
 
     sparse_jac(x) = begin
         sparsity_defined || return nothing
@@ -86,6 +118,7 @@ function SciMLBase.__solve(prob::OptimizationProblem,
         sd = SymbolicsSparsityDetection()
         sparse_jacobian(sparse_ad, sd, f.cons, zeros(num_cons), x)
     end
+
 
     jac_g_row, jac_g_col, nnz = begin
         if !sparsity_defined
@@ -146,10 +179,9 @@ function SciMLBase.__solve(prob::OptimizationProblem,
 
     __map_optimizer_args!(prob, opts, callback = callback,
                 maxiters = maxiters, maxtime = maxtime,
-                abstol = abstol, reltol = reltol,
+                abstol = abstol, reltol = reltol, sparsity=sparsity,
                 ; kwargs...)
 
-    @info opts.sparseQP opts.hessUpdate
     stats = blockSQP.SQPstats("./")
 
     _lb = blockSQP.__lowerbounds(_lb)
