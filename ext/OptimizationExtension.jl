@@ -81,7 +81,7 @@ function SciMLBase.__solve(prob::OptimizationProblem,
         end
     end
 
-    use_sparse_functions = sparsity != false
+    use_sparse_functions = (sparsity != false) || (!isnothing(options) && options.sparseQP == 2)
     blocks_hess = begin
         if use_sparse_functions
             if isa(sparsity, Bool)
