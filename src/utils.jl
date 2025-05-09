@@ -20,11 +20,11 @@ function full_to_lower!(arr1::Array{Float64, 1}, arr2::Array{Float64, 1}, n::Int
     end
 end
 
-function make_sparse(B_prob::blockSQPProblem, nnz::Int32, jac_nz::Function, jac_row::Array{Int32, 1}, jac_col::Array{Int32, 1})
+function make_sparse(B_prob::blockSQPProblem, nnz::Integer, jac_nz::Function, jac_row::Array{Int32, 1}, jac_col::Array{Int32, 1})
     B_prob.jac_g_nz = jac_nz
     B_prob.jac_g_row = jac_row
-    B_prob.jac_g_col = jac_col
-    B_prob.nnz = nnz
+    B_prob.jac_g_colind = jac_col
+    B_prob.nnz = Int32(nnz)
 end
 
 

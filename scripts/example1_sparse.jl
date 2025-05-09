@@ -35,8 +35,6 @@ opts = BlockSQPOptions(opttol=1e-12, sparseQP=2, hessUpdate=1)
 
 stats = blockSQP.SQPstats("./")
 
-
-
 meth = blockSQP.Solver(prob, opts, stats)
 blockSQP.init(meth)
 

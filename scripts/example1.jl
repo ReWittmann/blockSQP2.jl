@@ -27,11 +27,11 @@ opts = BlockSQPOptions(opttol=1e-12)
 
 stats = blockSQP.SQPstats("./")
 meth = blockSQP.Solver(prob, opts, stats)
-blockSQP.init(meth)
+blockSQP.init!(meth)
 
-ret = blockSQP.run(meth, 100, 1)
+ret = blockSQP.run!(meth, 100, 1)
 
-blockSQP.finish(meth)
+blockSQP.finish!(meth)
 
 x_opt = blockSQP.get_primal_solution(meth)
 lam_opt = blockSQP.get_dual_solution(meth)

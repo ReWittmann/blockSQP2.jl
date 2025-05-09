@@ -39,10 +39,12 @@ module blockSQP
     include("problem.jl")
 
     include("options.jl")
-    export BlockSQPOptions
+    export blockSQPOptions, qpOASES_options
 
     include("utils.jl")
 
     include("solver.jl")
+    
+    include("condenser.jl")
 
 end # module blockSQP

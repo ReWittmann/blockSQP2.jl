@@ -23,15 +23,14 @@ function evaluate_dense(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Const
         constrJac_arr = unsafe_wrap(Array{Float64, 2}, constrJac.cpp_object, (Jprob.nCon, Jprob.nVar), own = false)
         gradObj_arr[:] = Jprob.grad_f(xi_arr)
         constrJac_arr[:,:] .= Jprob.jac_g(xi_arr)
-
         if dmode == 2
-            hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)
+            hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = false)
 
             s = Jprob.blockIdx[Jprob.n_hessblocks + 1] - Jprob.blockIdx[Jprob.n_hessblocks]
             hess_last = unsafe_wrap(Array{Float64,1}, hess_arr[Jprob.n_hessblocks].cpp_object, Int32((s*(s+Int32(1)))//(Int32(2))), own = false)
             hess_last[:] = Jprob.last_hessBlock(xi_arr, lam_arr[Jprob.nVar + 1 : Jprob.nVar + Jprob.nCon])
         elseif dmode == 3
-            hessPTR_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)
+            hessPTR_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = false)
             hess_arr = Array{Array{Float64, 1}, 1}(undef, Jprob.n_hessblocks)
             for i = 1:Jprob.n_hessblocks
                 Bsize = Jprob.blockIdx[i+1] - Jprob.blockIdx[i]
@@ -92,7 +91,7 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Cons
         jac_nz_arr[:] = Jprob.jac_g_nz(xi_arr)
 
         if dmode == 2
-            hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)
+            hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = false)
 
             s_last = Jprob.blockIdx[Jprob.n_hessblocks + 1] - Jprob.blockIdx[Jprob.n_hesslbocks]
             hess_last = unsafe_wrap(Array{Float64,1}, hess_arr[Jprob.n_hessblocks].cpp_object, Int32((s*(s+Int32(1)))//(Int32(2))), own = false)
@@ -100,7 +99,7 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Cons
         end
 
         if dmode == 3
-            hessPTR_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)
+            hessPTR_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = false)
             hess_arr = Array{Array{Float64, 1}, 1}(undef, Jprob.n_hessblocks)
             for i = 1:Jprob.n_hessblocks
                 Bsize = Jprob.blockIdx[i+1] - Jprob.blockIdx[i]

@@ -1,4 +1,5 @@
-mutable struct BlockSQPOptions
+#=
+mutable struct blockSQPOptions
     opttol::Float64
     nlinfeastol::Float64
     maxiters::Int32
@@ -123,113 +124,123 @@ mutable struct BlockSQPOptions
                 iniHessDiag)
     end
 end
+=#
+abstract type QPsolver_options end
 
-function set_cxx_options(opts::BlockSQPOptions)
-    cxx_opts = SQPoptions()
-    opt_keys = string.(fieldnames(typeof(opts)))
-
-    if "printLevel" in opt_keys
-        set_printLevel(cxx_opts, Int32(opts.printLevel))
+#=
+mutable struct blockSQPOptions
+    opt_tol::Float64
+    feas_tol::Float64
+    maxiters::Int32
+    enable_linesearch::CxxBool
+    hess_approx::Int32
+    fallback_approx::Int32
+    sizing::Int32
+    fallback_sizing::Int32
+    lim_mem::CxxBool
+    mem_size::Int32
+    max_consec_skipped_updates::Int32
+    block_hess::Int32
+    exact_hess::Int32
+    sparse::Bool
+    print_level::Int32
+    result_print_color::Int32
+    debug_level::Int32
+    qpsol::String
+    qpsol_options::Union{QPsolver_options, Nothing}
+    max_SOC::Int32
+    max_conv_QPs::Int32
+    conv_strategy::Int32
+    skip_first_linesearch::CxxBool
+    BFGS_damping_factor::Float64
+    COL_eps::Float64
+    COL_tau_1::Float64
+    COL_tau_2::Float64
+    OL_eps::Float64
+    eps::Float64
+    inf::Float64
+    enable_rest::CxxBool
+    max_linesearch_steps::Int32
+    max_consec_reduced_steps::Int32
+    max_QP_it::Int32
+    max_QP_secs::Float64
+    initial_hess_scale::Float64
+    function blockSQPOptions(;
+                            opt_tol::Float64 = 1.0e-6,
+                            feas_tol::Float64 = 1.0e-6,
+                            maxiters::Integer=100,
+                            enable_linesearch::Bool = true,
+                            hess_approx::Integer = Int32(1),
+                            fallback_approx::Integer = Int32(2),
+                            sizing::Integer = Int32(1),
+                            fallback_sizing::Integer = Int32(2),
+                            lim_mem::Bool = true,
+                            mem_size::Integer = Int32(20),
+                            max_consec_skipped_updates::Int32 = Int32(200),
+                            block_hess::Integer = Int32(1),
+                            exact_hess::Integer = Int32(0),
+                            sparse::Bool = true,
+                            print_level::Integer = Int32(2),
+                            result_print_color::Integer=Int32(2),
+                            debug_level::Integer = Int32(0),
+                            qpsol::String = "qpOASES",
+                            qpsol_options::Union{QPsolver_options, Nothing} = nothing,
+                            max_SOC::Integer=Int32(3),
+                            max_conv_QPs::Integer=Int32(1),
+                            conv_strategy::Integer=Int32(0),
+                            skip_first_linesearch::Bool=false,
+                            BFGS_damping_factor::Float64=1/3,
+                            COL_eps::Float64=0.1,
+                            COL_tau_1::Float64=0.5,
+                            COL_tau_2::Float64=1.0e4,
+                            OL_eps::Float64=1.0e-4,
+                            eps::Float64=1e-16,
+                            inf::Float64=Inf,
+                            enable_rest::Bool=true,
+                            max_linesearch_steps::Integer=Int32(20),
+                            max_consec_reduced_steps::Integer=Int32(100),
+                            max_QP_it::Integer=Int32(5000),
+                            max_QP_secs::Float64=120.0,
+                            initial_hess_scale::Float64=1.0
+                            )
+        return new(
+                opt_tol,
+                feas_tol,
+                maxiters,
+                enable_linesearch,
+                hess_approx,
+                fallback_approx,
+                sizing,
+                fallback_sizing,
+                lim_mem,
+                mem_size,
+                max_consec_skipped_updates,
+                block_hess,
+                exact_hess,
+                sparse,
+                print_level,
+                result_print_color,
+                debug_level,
+                qpsol,
+                qpsol_options,
+                max_SOC,
+                max_conv_QPs,
+                conv_strategy,
+                skip_first_linesearch,
+                BFGS_damping_factor,
+                COL_eps,
+                COL_tau_1,
+                COL_tau_2,
+                OL_eps,
+                eps,
+                inf,
+                enable_rest,
+                max_linesearch_steps,
+                max_consec_reduced_steps,
+                max_QP_it,
+                max_QP_secs,
+                initial_hess_scale)
     end
-    if "printColor" in opt_keys
-        set_printColor(cxx_opts, Int32(opts.printColor))
-    end
-    if "debugLevel" in opt_keys
-        set_debugLevel(cxx_opts, Int32(opts.debugLevel))
-    end
-    if "eps" in opt_keys
-        set_eps(cxx_opts, Float64(opts.eps))
-    end
-    if "inf" in opt_keys
-        set_inf(cxx_opts, Float64(opts.inf))
-    end
-    if "opttol" in opt_keys
-        set_opttol(cxx_opts, Float64(opts.opttol))
-    end
-    if "nlinfeastol" in opt_keys
-        set_nlinfeastol(cxx_opts, Float64(opts.nlinfeastol))
-    end
-    if "sparseQP" in opt_keys
-        set_sparseQP(cxx_opts, Int32(opts.sparseQP))
-    end
-    if "globalization" in opt_keys
-        set_globalization(cxx_opts, Int32(opts.globalization))
-    end
-    if "restoreFeas" in opt_keys
-        set_restoreFeas(cxx_opts, Int32(opts.restoreFeas))
-    end
-    if "maxLineSearch" in opt_keys
-        set_maxLineSearch(cxx_opts, Int32(opts.maxLineSearch))
-    end
-    if "maxConsecReducedSteps" in opt_keys
-        set_maxConsecReducedSteps(cxx_opts, Int32(opts.maxConsecReducedSteps))
-    end
-    if "maxConsecSkippedUpdates" in opt_keys
-        set_maxConsecSkippedUpdates(cxx_opts, Int32(opts.maxConsecSkippedUpdates))
-    end
-    if "maxItQP" in opt_keys
-        set_maxItQP(cxx_opts, Int32(opts.maxItQP))
-    end
-    if "blockHess" in opt_keys
-        set_blockHess(cxx_opts, Int32(opts.blockHess))
-    end
-    if "hessScaling" in opt_keys
-        set_hessScaling(cxx_opts, Int32(opts.hessScaling))
-    end
-    if "fallbackScaling" in opt_keys
-        set_fallbackScaling(cxx_opts, Int32(opts.fallbackScaling))
-    end
-    if "maxTimeQP" in opt_keys
-        set_maxTimeQP(cxx_opts, Float64(opts.maxTimeQP))
-    end
-    if "iniHessDiag" in opt_keys
-        set_iniHessDiag(cxx_opts, Float64(opts.iniHessDiag))
-    end
-    if "colEps" in opt_keys
-        set_colEps(cxx_opts, Float64(opts.colEps))
-    end
-    if "colTau1" in opt_keys
-        set_colTau1(cxx_opts, Float64(opts.colTau1))
-    end
-    if "colTau2" in opt_keys
-        set_colTau2(cxx_opts, Float64(opts.colTau2))
-    end
-    if "hessDamp" in opt_keys
-        set_hessDamp(cxx_opts, Int32(opts.hessDamp))
-    end
-    if "hessDampFac" in opt_keys
-        set_hessDampFac(cxx_opts, Float64(opts.hessDampFac))
-    end
-    if "hessUpdate" in opt_keys
-        set_hessUpdate(cxx_opts, Int32(opts.hessUpdate))
-    end
-    if "fallbackUpdate" in opt_keys
-        set_fallbackUpdate(cxx_opts, Int32(opts.fallbackUpdate))
-    end
-    if "hessLimMem" in opt_keys
-        set_hessLimMem(cxx_opts, Int32(opts.hessLimMem))
-    end
-    if "hessMemsize" in opt_keys
-        set_hessMemsize(cxx_opts, Int32(opts.hessMemsize))
-    end
-    if "whichSecondDerv" in opt_keys
-        set_whichSecondDerv(cxx_opts, Int32(opts.whichSecondDerv))
-    end
-    if "skipFirstGlobalization" in opt_keys
-        set_skipFirstGlobalization(cxx_opts, Int32(opts.skipFirstGlobalization))
-    end
-    if "convStrategy" in opt_keys
-        set_convStrategy(cxx_opts, Int32(opts.convStrategy))
-    end
-    if "maxConvQP" in opt_keys
-        set_maxConvQP(cxx_opts, Int32(opts.maxConvQP))
-    end
-    if "maxSOCiter" in opt_keys
-        set_maxSOCiter(cxx_opts, Int32(opts.maxSOCiter))
-    end
-
-    return cxx_opts
-
 end
 
 function sparse_options()
