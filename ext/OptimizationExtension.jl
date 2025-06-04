@@ -1,23 +1,65 @@
 module OptimizationExtension
 
-using Optimization, blockSQP, Optimization.SciMLBase
+using blockSQP, blockSQP.SparseArrays
+using Optimization, Optimization.SciMLBase
 using Pkg
+
 SciMLBase.allowsbounds(::BlockSQPOpt) = true
 SciMLBase.allowsconstraints(::BlockSQPOpt) = true
-SciMLBase.allowscallback(::BlockSQPOpt) = false
-SciMLBase.supports_opt_cache_interface(opt::BlockSQPOpt) = false
+SciMLBase.allowscallback(::BlockSQPOpt) = true
+SciMLBase.requiresgradient(::BlockSQPOpt) = true
+SciMLBase.requiresconsjac(::BlockSQPOpt) = true
+SciMLBase.supports_opt_cache_interface(opt::BlockSQPOpt) = true
 
-@info "Loading extension for blockSQP..."
+@info "Loading Optimization.jl extension for blockSQP..."
 
-function __map_optimizer_args!(prob::OptimizationProblem, opt::blockSQP.BlockSQPOptions;
+function SciMLBase.__init(prob::SciMLBase.OptimizationProblem, opt::BlockSQPOpt,
+        ;
+        callback = Optimization.DEFAULT_CALLBACK,
+        progress = false, maxiters=nothing,
+        options::BlockSQPOptions=BlockSQPOptions(),
+        sparsity::Union{Vector{<:Integer}, Bool}=false, kwargs...)
+
+        use_sparse_functions = sparsity != false || options.sparseQP == 2
+        num_x = prob.u0 |> length
+        num_cons = prob.ucons === nothing ? 0 : length(prob.ucons)
+
+        blocks_hess = begin
+            if use_sparse_functions
+                if isa(sparsity, Bool)
+                    function cons_ip(cons,x)
+                        prob.f.cons(cons, x, prob.p)
+                        return cons
+                    end
+                    blockSQP.compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
+                else
+                    @assert (sparsity[1] == 0) && (sparsity[end] == num_x) "sparsity[1] must be 0, sparsity[num_vars+1] must be num_vars"
+                    sparsity
+                end
+            else
+                [0, num_x]
+            end
+        end
+
+    return OptimizationCache(prob, opt; callback = callback, progress = progress,
+        use_sparse_functions = use_sparse_functions, sparsity = blocks_hess, options=options,
+        maxiters = maxiters, kwargs...)
+end
+
+function __map_optimizer_args!(cache::OptimizationCache,
+    opt::blockSQP.BlockSQPOptions;
     callback = nothing,
     maxiters::Union{Number, Nothing} = nothing,
     maxtime::Union{Number, Nothing} = nothing,
     abstol::Union{Number, Nothing} = nothing,
     reltol::Union{Number, Nothing} = nothing,
+    sparsity::AbstractVector{Int},
     kwargs...)
+
     for j in kwargs
-        setproperty!(opt.options, j.first, j.second)
+        if j.first in fieldnames(blockSQP.BlockSQPOptions)
+            setproperty!(opt, j.first, j.second)
+        end
     end
 
     if !isnothing(maxiters)
@@ -36,102 +78,143 @@ function __map_optimizer_args!(prob::OptimizationProblem, opt::blockSQP.BlockSQP
         opt.opttol = abstol
     end
 
+    if length(sparsity) > 2
+        opt.hessUpdate = 1
+        opt.sparseQP = 2
+    end
+
     return nothing
 end
 
-function SciMLBase.__solve(prob::OptimizationProblem,
-    opt::BlockSQPOpt;
-    callback = nothing,
-    maxiters::Union{Number, Nothing} = nothing,
-    maxtime::Union{Number, Nothing} = nothing,
-    abstol::Union{Number, Nothing} = nothing,
-    reltol::Union{Number, Nothing} = nothing,
-    progress = false,
-    options::Union{Nothing,blockSQP.BlockSQPOptions} = nothing,
-    kwargs...)
+
+function SciMLBase.__solve(
+    cache::OptimizationCache{F,RC,LB,UB,LC,UC,S,O,D,P,C}
+ ) where {F,RC,LB,UB,LC,UC,S,O <:BlockSQPOpt,D,P,C}
 
     local x
 
-    maxiters = Optimization._check_and_convert_maxiters(maxiters)
-    maxtime = Optimization._check_and_convert_maxtime(maxtime)
-    num_cons = prob.ucons === nothing ? 0 : length(prob.ucons)
-    num_x = length(prob.u0)
-    T = eltype(prob.u0)
-    # Hacky solution for backward compatibility with DynamicOED. Will be removed shortly.
-    f = begin
-        if pkgversion(Optimization) < v"4"
-            Optimization.instantiate_function(prob.f, prob.u0, prob.f.adtype, prob.p, num_cons)
-        else
-            reinit_cache = Optimization.ReInitCache(prob.u0, prob.p) # everything that can be changed via `reinit`
-            Optimization.instantiate_function(
-                prob.f, reinit_cache, prob.f.adtype, num_cons;
-                g = true, h = false, cons_j = true, cons_h = false)
-        end
-    end
+    maxiters = Optimization._check_and_convert_maxiters(cache.solver_args.maxiters)
+    maxtime = Optimization._check_and_convert_maxtime(cache.solver_args.maxtime)
+    num_cons = cache.ucons === nothing ? 0 : length(cache.ucons)
+    num_x = length(cache.u0)
+    T = eltype(cache.u0)
 
+    use_sparse_functions = cache.solver_args.use_sparse_functions
+    sparsity = cache.solver_args.sparsity
+
+    callback = cache.callback
 
     _loss = function (θ)
-        x = f.f(θ, prob.p)
-        return first(x)
+        x = cache.f(θ, cache.p)
+        return only(x)
     end
 
     _g = function(θ)
         g_ = similar(θ)
-        f.grad(g_, θ)
+        cache.f.grad(g_, θ)
         return g_
     end
 
-    _cons = num_cons > 0  ? function(θ)
-        c_ = zeros(eltype(θ), num_cons)
-        f.cons(c_, θ)
-        return c_
-    end : x -> zeros(eltype(x), 1) # dummy constraint that it doesnt crash, TODO: FIX THIS
+    _cons = begin
+        if num_cons > 0
+            function(θ)
+                c_ = zeros(eltype(θ), num_cons)
+                cache.f.cons(c_, θ)
+                return c_
+            end
+        else
+            (x) -> zeros(eltype(x), 1) # dummy constraint that it doesnt crash, TODO: FIX THIS
+        end
+    end
 
-    _jac_cons = num_cons > 0 ? function(θ)
-        J = zeros(eltype(θ), num_cons, num_x)
-        f.cons_j(J, θ)
-        return J
-    end : x -> zeros(eltype(x), 1, num_x)
+    _jac_cons = begin
+        if num_cons > 0
+            function(θ)
+                J = zeros(eltype(θ), num_cons, num_x)
+                cache.f.cons_j(J, θ)
+                return J
+            end
+        else
+            (x) -> zeros(eltype(x), 1, num_x)
+        end
+    end
+
+    jac_g_row, jac_g_col, nnz = begin
+        if use_sparse_functions
+            J_sparse = sparse(_jac_cons(cache.u0))
+            J_sparse.rowval .- 1, J_sparse.colptr .- 1, length(J_sparse.nzval)
+        else
+            Int32[], Int32[], -1
+        end
+    end
+
+    sparse_jac(x) = let row = jac_g_row, col = jac_g_col, nnz=nnz
+        _J = sparse(_jac_cons(x))
+        newrow = _J.rowval .- 1
+        newcol = _J.colptr .- 1
+        newnnz = length(_J.nzval)
+        @assert all(row .== newrow)
+        @assert all(col .== newcol)
+        @assert nnz == newnnz
+        _J.nzval
+    end
 
     num_cons = max(1, num_cons)
-    _lb = isnothing(prob.lb) ? -Inf * ones(T, num_x) : prob.lb
-    _ub = isnothing(prob.ub) ? Inf * ones(T, num_x) : prob.ub
-    _lb_cons = isnothing(prob.lcons) ? -Inf * ones(T, num_cons) : prob.lcons
-    _ub_cons = isnothing(prob.ucons) ? Inf * ones(T, num_cons) : prob.ucons
+    _lb = isnothing(cache.lb) ? -Inf * ones(T, num_x) : cache.lb
+    _ub = isnothing(cache.ub) ? Inf * ones(T, num_x) : cache.ub
+    _lb_cons = isnothing(cache.lcons) ? -Inf * ones(T, num_cons) : cache.lcons
+    _ub_cons = isnothing(cache.ucons) ? Inf * ones(T, num_cons) : cache.ucons
 
     _lambda_0 = zeros(T, num_x+num_cons)
-    opts = isnothing(options) ? blockSQP.BlockSQPOptions() : options
+    opts = cache.solver_args.options
 
-    __map_optimizer_args!(prob, opts, callback = callback,
+    __map_optimizer_args!(cache, opts, callback = callback,
                 maxiters = maxiters, maxtime = maxtime,
-                abstol = abstol, reltol = reltol,
-                ; kwargs...)
+                abstol = cache.solver_args.abstol, reltol = cache.solver_args.reltol,
+                sparsity=sparsity; cache.solver_args...)
+
     stats = blockSQP.SQPstats("./")
 
     _lb = blockSQP.__lowerbounds(_lb)
     _ub = blockSQP.__upperbounds(_ub)
-    _u0 = blockSQP.__initial_values(prob.u0)
+    _u0 = blockSQP.__initial_values(cache.u0)
 
     sqp_prob = blockSQP.blockSQPProblem(_loss, _cons, _g, _jac_cons,
                             _lb, _ub, _lb_cons, _ub_cons,
-                            _u0, _lambda_0)
+                            _u0, _lambda_0; blockIdx = sparsity,
+                            jac_g_row = jac_g_row, jac_g_colind = jac_g_col,
+                            nnz = nnz,
+                            jac_g_nz = use_sparse_functions ? sparse_jac : blockSQP.fnothing
+                            )
 
+    meth = blockSQP.Solver(sqp_prob, opts, stats)
+
+    blockSQP.init(meth)
     t0 = time()
-        meth = blockSQP.Solver(sqp_prob, opts, stats)
-
-        blockSQP.init(meth)
-
+    if cache.callback == Optimization.DEFAULT_CALLBACK
         ret = blockSQP.run(meth, opts.maxiters, 1)
-
-        blockSQP.finish(meth)
+    else
+        for i=1:opts.maxiters
+            ret = blockSQP.run(meth, 1, 1)
+            _iterate = blockSQP.get_primal_solution(meth)
+            _obj = _loss(_iterate)[1]
+            state = Optimization.OptimizationState(iter = i,
+                u = _iterate,
+                objective = _obj[1])
+            cret = cache.callback(state, _obj)
+            (cret || ret == 0) && break
+        end
+    end
+    blockSQP.finish(meth)
     t1 = time()
 
+    # TODO: Save number of iterations somehow
     x_opt = blockSQP.get_primal_solution(meth)
     lambda = blockSQP.get_dual_solution(meth)
     f_opt = _loss(x_opt)
     retcode = ret == 0 ? SciMLBase.ReturnCode.Success : SciMLBase.ReturnCode.Default
 
-    SciMLBase.build_solution(SciMLBase.DefaultOptimizationCache(prob.f, prob.p), opt,
+    SciMLBase.build_solution(cache, cache.opt,
     x_opt, f_opt;
          (; original = (ret = ret, multiplier = lambda) , retcode = retcode,
             solve_time = t1 - t0)...)

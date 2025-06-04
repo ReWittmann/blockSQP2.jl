@@ -35,40 +35,54 @@ mutable struct BlockSQPOptions
     maxTimeQP::Float64
     iniHessDiag::Float64
     function BlockSQPOptions(;
-                            opttol::Float64 = 1.0e-5,
-                            nlinfeastol::Float64 = 1.0e-12,
+        blockHess::Integer = Int32(1),
+
+        colEps::Float64=0.0,
+        colTau1::Float64=0.0,
+        colTau2::Float64=0.0,
+        convStrategy::Integer=Int32(0),
+
+        debugLevel::Integer = Int32(0),
+
+        fallbackScaling::Integer = Int32(0),
+        fallbackUpdate::Integer = Int32(2),
+
+        globalization::Integer = Int32(0),
+        hessDamp::Integer=Int32(1),
+
+        hessDampFac::Float64=0.0,
+        hessLimMem::Integer = Int32(1),
+        hessMemsize::Integer = Int32(20),
+        hessScaling::Integer = Int32(0),
+        hessUpdate::Integer = Int32(1),
+
                             maxiters::Integer=100,
-                            globalization::Integer = Int32(0),
-                            hessUpdate::Integer = Int32(2),
-                            fallbackUpdate::Integer = Int32(2),
-                            hessScaling::Integer = Int32(0),
-                            fallbackScaling::Integer = Int32(0),
-                            hessLimMem::Integer = Int32(1),
-                            hessMemsize::Integer = Int32(20),
-                            maxConsecSkippedUpdates::Int32 = Int32(200),
-                            blockHess::Integer = Int32(1),
-                            whichSecondDerv::Integer = Int32(0),
-                            sparseQP::Integer = Int32(0),
-                            printLevel::Integer = Int32(2),
-                            printColor::Integer=Int32(0),
-                            debugLevel::Integer = Int32(0),
-                            which_QPsolver::String = "qpOASES",
-                            maxSOCiter::Integer=Int32(3),
-                            maxConvQP::Integer=Int32(1),
-                            convStrategy::Integer=Int32(0),
-                            skipFirstGlobalization::Integer=Int32(1),
-                            hessDampFac::Float64=0.0,
-                            hessDamp::Integer=Int32(1),
-                            colEps::Float64=0.0,
-                            colTau1::Float64=0.0,
-                            colTau2::Float64=0.0,
-                            eps::Float64=1e-16,
-                            inf::Float64=1e20,
-                            restoreFeas::Integer=Int32(1),
                             maxLineSearch::Integer=Int32(20),
                             maxConsecReducedSteps::Integer=Int32(100),
                             maxItQP::Integer=Int32(5000),
                             maxTimeQP::Float64=10000.0,
+                            maxSOCiter::Integer=Int32(3),
+                            maxConvQP::Integer=Int32(1),
+                            maxConsecSkippedUpdates::Int32 = Int32(200),
+
+                            nlinfeastol::Float64 = 1.0e-12,
+                            opttol::Float64 = 1.0e-5,
+
+
+                            printLevel::Integer = Int32(2),
+                            printColor::Integer=Int32(0),
+                            restoreFeas::Integer=Int32(1),
+
+                            skipFirstGlobalization::Integer=Int32(1),
+                            sparseQP::Integer = Int32(0),
+
+                            which_QPsolver::String = "qpOASES",
+                            whichSecondDerv::Integer = Int32(0),
+
+                            eps::Float64=1e-16,
+                            inf::Float64=1e20,
+
+
                             iniHessDiag::Float64=1.0
                             )
         return new(
@@ -216,4 +230,17 @@ function set_cxx_options(opts::BlockSQPOptions)
 
     return cxx_opts
 
+end
+
+function sparse_options()
+    opts = BlockSQPOptions()
+    opts.sparseQP = 2
+    opts.globalization = 1
+    opts.hessUpdate = 1
+    opts.hessScaling = 2
+    opts.fallbackUpdate = 2
+    opts.fallbackScaling = 4
+    opts.opttol = 1e-6
+    opts.nlinfeastol = 1e-6
+    return opts
 end
