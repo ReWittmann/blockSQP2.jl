@@ -5,7 +5,7 @@ using ForwardDiff
 using OptimizationMOI, Ipopt
 using Test
 using LinearAlgebra
-@testset "Optimization.jl " begin
+@testset "blockSQP.jl " begin
 
     @testset "Rosenbrock" begin
         rosenbrock(x, p) = (p[1] - x[1])^2 + p[2] * (x[2] - x[1]^2)^2
@@ -104,19 +104,20 @@ using LinearAlgebra
         end
 
     end
-end
 
-@testset "Sparsity" begin
-    H1 = [1 0 ; 0 1]
-    blocks_h1 = blockSQP.compute_hessian_blocks(H1)
-    @test blocks_h1 == [0,1,2]
+    @testset "Sparsity" begin
+        H1 = [1 0 ; 0 1]
+        blocks_h1 = blockSQP.compute_hessian_blocks(H1)
+        @test blocks_h1 == [0,1,2]
 
-    block1, block2 = diagm(ones(3)), ones(2,2)
-    H2 = [block1 zeros(3,2); zeros(2,3) block2]
-    blocks_h2 = blockSQP.compute_hessian_blocks(H2)
-    @test blocks_h2 == [0,1,2,3,5]
+        block1, block2 = diagm(ones(3)), ones(2,2)
+        H2 = [block1 zeros(3,2); zeros(2,3) block2]
+        blocks_h2 = blockSQP.compute_hessian_blocks(H2)
+        @test blocks_h2 == [0,1,2,3,5]
 
-    H3 = ones(4,4)
-    blocks_h3 = blockSQP.compute_hessian_blocks(H3)
-    @test blocks_h3 == [0,4]
+        H3 = ones(4,4)
+        blocks_h3 = blockSQP.compute_hessian_blocks(H3)
+        @test blocks_h3 == [0,4]
+    end
+
 end
