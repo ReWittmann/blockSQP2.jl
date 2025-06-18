@@ -139,24 +139,19 @@ function SciMLBase.__solve(
         end
     end
 
-    jac_g_row, jac_g_col, nnz = begin
+    jac_g_row, jac_g_col, nnz, jac_row, jac_col = begin
         if use_sparse_functions
             J_sparse = sparse(_jac_cons(cache.u0))
-            J_sparse.rowval .- 1, J_sparse.colptr .- 1, length(J_sparse.nzval)
+            jac_row, jac_col, jac_val = findnz(J_sparse)
+            J_sparse.rowval .- 1, J_sparse.colptr .- 1, length(jac_val), jac_row, jac_col
         else
-            Int32[], Int32[], -1
+            Int32[], Int32[], -1, nothing, nothing
         end
     end
 
-    sparse_jac(x) = let row = jac_g_row, col = jac_g_col, nnz=nnz
-        _J = sparse(_jac_cons(x))
-        newrow = _J.rowval .- 1
-        newcol = _J.colptr .- 1
-        newnnz = length(_J.nzval)
-        @assert all(row .== newrow)
-        @assert all(col .== newcol)
-        @assert nnz == newnnz
-        _J.nzval
+    sparse_jac(x) = let jac_row = jac_row, jac_col = jac_col
+        _J = _jac_cons(x)
+        return [_J[i,j] for (i,j) in zip(jac_row,jac_col)]
     end
 
     num_cons = max(1, num_cons)

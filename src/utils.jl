@@ -69,7 +69,7 @@ function compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
     return blockIdx
 end
 
-function compute_hessian_blocks(f::Function, g::Function, num_x::Integer,
+function compute_hessian_blocks(f, g, num_x::Integer,
                  num_cons::Integer; parameters=[])
     lag(x, mu) = begin
         fx = f(x, parameters)
