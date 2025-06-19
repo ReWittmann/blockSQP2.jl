@@ -7,8 +7,9 @@ git clone https://kosinus.math.uni-magdeburg.de/mathopt/software/blocksqp.jl
 
 cd blocksqp.jl
 julia --project
-using Pkg
-Pkg.add(url="https://github.com/chplate/qpoases_mumps")
-Pkg.add(url="https://github.com/chplate/blocksqp_mumps")
+```
+Then you press `]` to enter the REPL mode in Julia. Here, you can then add the two packages from Github
+```julia
+add https://github.com/chplate/qpoases_mumps https://github.com/chplate/blocksqp_mumps
 using blockSQP
  ```
