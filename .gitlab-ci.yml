@@ -2,7 +2,7 @@ test:
   image: julia:1.10
   script:
     - |
-      julia --project=@. -e --heap-size-hint=1g'
+      julia --project=@. -e --heap-size-hint=1G'
         using Pkg
         Pkg.build()
         Pkg.test(coverage=true)'
