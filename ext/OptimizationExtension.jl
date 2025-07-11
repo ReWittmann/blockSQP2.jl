@@ -211,8 +211,8 @@ function SciMLBase.__solve(
 
     SciMLBase.build_solution(cache, cache.opt,
     x_opt, f_opt;
-         (; original = (ret = ret, multiplier = lambda) , retcode = retcode,
-            solve_time = t1 - t0)...)
+         (; original = (ret = ret, multiplier = lambda, solve_time = t1 - t0) , retcode = retcode,
+            )...)
 end
 
 end # module OptimizationExtension
