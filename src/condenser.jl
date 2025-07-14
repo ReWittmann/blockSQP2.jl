@@ -184,6 +184,7 @@ end
 
 
 
+#=
 
 struct condensing_Solver
     #C++ side objects
@@ -223,6 +224,7 @@ condensing_Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, cxx_stats::SQP
     condensing_Solver(cxx_method, cxx_prob, cxx_opts, cxx_QPsol_opts, cxx_stats, J_prob, opts, J_cond)
 end
 
+=#
 
 
 
