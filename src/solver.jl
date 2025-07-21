@@ -168,8 +168,10 @@ function finish!(sol::Solver)
     ccall(@dlsym(libblockSQP, "SQPmethod_finish"), Cvoid, (Ptr{Cvoid},), sol.SQPmethod_obj)
 end
 
+#=
 function get_primal_solution(sol::Solver)
     xi_ptr = ccall(@dlsym(libblockSQP, "SQPmethod_release_xi"), Ptr{Cdouble}, (Ptr{Cvoid},), sol.SQPmethod_obj)
+    print("sol.Jul_Problem.nVar = ", sol.Jul_Problem.nVar, "\n")
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi_ptr, sol.Jul_Problem.nVar, own = true)
     return xi_arr
 end
@@ -188,5 +190,23 @@ function get_dual_solution_full(sol::Solver)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam_ptr.cpp_object, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon, own = true)
     return -lam_arr
 end
+=#
 
+function get_primal_solution(sol::Solver)
+    xi_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar)
+    ccall(@dlsym(libblockSQP, "SQPmethod_get_xi"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, pointer(xi_arr))
+    return xi_arr
+end
+
+function get_dual_solution(sol::Solver)
+    lam_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon)
+    ccall(@dlsym(libblockSQP, "SQPmethod_get_lambda"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, lam_arr)
+    return -lam_arr[sol.Jul_Problem.nVar + 1 : end]
+end
+
+function get_dual_solution_full(sol::Solver)
+    lam_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon)
+    ccall(@dlsym(libblockSQP, "SQPmethod_get_lambda"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, lam_arr)
+    return -lam_arr
+end
 
