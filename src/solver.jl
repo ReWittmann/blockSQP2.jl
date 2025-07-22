@@ -24,46 +24,21 @@ end
 
 mutable struct Solver
     #C++ side objects
-    #=
-    BSQP_solver::Cxx_SQPmethod
-    BSQP_problem::Problemform
-    BSQP_options::Cxx_SQPoptions
-    QPsol_options::Cxx_QPsolver_options
-    BSQP_stats::SQPstats
-    =#
-    
-    #C++ side objects
     SQPmethod_obj::Ptr{Cvoid}
     Problemspec_obj::Ptr{Cvoid}
     SQPoptions_obj::Ptr{Cvoid}
     QPsolver_options_obj::Ptr{Cvoid}
     SQPstats_obj::Ptr{Cvoid}
     
-    
     #Julia side objects
     Jul_Problem::blockSQPProblem
     Options::blockSQPOptions
     
     #The Solver struct will take ownership of the passed SQPstats. The recommended way to call is Solver(*, *, SQPstats("PATH/TO/SOMETHING"))
-    Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, SQPstats_obj_pass::Ptr{Cvoid}) = begin
-        #Create problem class on the C++ side
-        #=
-        new_Problemspec_obj = create_Problemspec(J_prob.nVar, J_prob.nCon)
-        Problemspec_set_scope(new_Problemspec_obj, pointer_from_objref(J_prob))
-        Problemspec_set_dense_init(new_Problemspec_obj, @cfunction(initialize_dense, Nothing, (Ptr{Nothing}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64})))
-        Problemspec_set_dense_eval(new_Problemspec_obj, @cfunction(evaluate_dense, Nothing, (Ptr{Nothing}, ConstPtr{Float64}, ConstPtr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Ptr{Float64}}, Int32, Ptr{Int32})))
-        Problemspec_set_simple_eval(new_Problemspec_obj, @cfunction(evaluate_simple, Nothing, (Ptr{Nothing}, ConstPtr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32})))
-        Problemspec_set_sparse_init(new_Problemspec_obj, @cfunction(initialize_sparse, Nothing, (Ptr{Nothing}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32}, Ptr{Int32})))
-        Problemspec_set_sparse_eval(new_Problemspec_obj, @cfunction(evaluate_sparse, Nothing, (Ptr{Nothing}, ConstPtr{Float64}, ConstPtr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32}, Ptr{Int32}, Ptr{Ptr{Float64}}, Int32, Ptr{Int32})))
-        Problemspec_set_continuity_restoration(new_Problemspec_obj, @cfunction(reduceConstrVio, Nothing, (Ptr{Nothing}, Ptr{Float64}, Ptr{Int32})))
-        Problemspec_set_blockIdx(new_Problemspec_obj, J_prob.blockIdx)
-        Problemspec_set_nnz(new_Problemspec_obj, J_prob.nnz)
-        Problemspec_set_bounds(new_Problemspec_obj, J_prob.lb_var, J_prob.ub_var, J_prob.lb_con, J_prob.ub_con, J_prob.lb_obj, J_prob.ub_obj)
-        =#
-        
+    Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, SQPstats_obj_pass::Ptr{Cvoid}) = begin        
         new_Problemspec_obj = ccall(@dlsym(libblockSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
         
-        #Set closure (assumed shared for all callbacks) and callbacks
+        #Shared closure (blockSQPProblem instance) of all callbacks
         ccall(@dlsym(libblockSQP, "Problemspec_set_closure"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, pointer_from_objref(J_prob))
         
         ccall(@dlsym(libblockSQP, "Problemspec_set_dense_init"), Cvoid,
@@ -99,7 +74,8 @@ mutable struct Solver
                         Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
                         Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint},
                         Ptr{Ptr{Cdouble}}, Cint, Ptr{Cint})))
-
+        
+        
         ccall(@dlsym(libblockSQP, "Problemspec_set_continuity_restoration"), Cvoid,
             (Ptr{Cvoid}, Ptr{Cvoid}),
             new_Problemspec_obj,
@@ -121,11 +97,12 @@ mutable struct Solver
         
         
         if length(J_prob.vblocks) > 0
+            #Allocate vblocks
             vblock_array_obj = ccall(@dlsym(libblockSQP, "create_vblock_array"), Ptr{Cvoid}, (Cint, ), Cint(length(J_prob.vblocks)))
             for i = 1:length(J_prob.vblocks)
-                ccall(@dlsym(libblockSQP, "vblock_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cchar), vblock_array_obj, Cint(J_prob.vblocks[i].size), Cchar(J_prob.vblocks[i].dependent))
+                ccall(@dlsym(libblockSQP, "vblock_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cchar), vblock_array_obj, Cint(i - 1), Cint(J_prob.vblocks[i].size), Cchar(J_prob.vblocks[i].dependent))
             end
-            #Pass ownership of vblocks
+            #Pass ownership of C++ allocated vblocks
             ccall(@dlsym(libblockSQP, "Problemspec_pass_vblocks"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), new_Problemspec_obj, vblock_array_obj, Cint(length(J_prob.vblocks)))
         end
         
@@ -164,34 +141,10 @@ function run!(sol::Solver, maxIt::Integer, warmStart::Integer)
 end
 
 function finish!(sol::Solver)
-    #SQPmethod_finish(sol.SQPmethod_obj)
     ccall(@dlsym(libblockSQP, "SQPmethod_finish"), Cvoid, (Ptr{Cvoid},), sol.SQPmethod_obj)
 end
 
-#=
-function get_primal_solution(sol::Solver)
-    xi_ptr = ccall(@dlsym(libblockSQP, "SQPmethod_release_xi"), Ptr{Cdouble}, (Ptr{Cvoid},), sol.SQPmethod_obj)
-    print("sol.Jul_Problem.nVar = ", sol.Jul_Problem.nVar, "\n")
-    xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi_ptr, sol.Jul_Problem.nVar, own = true)
-    return xi_arr
-end
-
-function get_dual_solution(sol::Solver)
-    #lam_ptr = SQPmethod_get_lambda(sol.SQPmethod_obj)
-    lam_ptr = ccall(@dlsym(libblockSQP, "SQPmethod_release_lambda"), Ptr{Cdouble}, (Ptr{Cvoid},), sol.SQPmethod_obj)
-    lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam_ptr, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon, own = true)
-    return -lam_arr[sol.Jul_Problem.nVar + 1 : end]
-end
-
-function get_dual_solution_full(sol::Solver)
-    #lam_ptr = SQPmethod_get_dual(sol.BSQP_solver)
-    
-    lam_ptr = ccall(@dlsym(libblockSQP, "SQPmethod_release_lambda"), Ptr{Cdouble}, (Ptr{Cvoid},), sol.SQPmethod_obj)
-    lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam_ptr.cpp_object, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon, own = true)
-    return -lam_arr
-end
-=#
-
+#Allocate space for solution on julia side and call C method to fill it
 function get_primal_solution(sol::Solver)
     xi_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar)
     ccall(@dlsym(libblockSQP, "SQPmethod_get_xi"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, pointer(xi_arr))

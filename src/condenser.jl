@@ -1,230 +1,393 @@
+struct cblock
+    size::Integer
+end
+
+struct condensing_target
+    n_stages::Integer
+    first_free::Integer
+    vblock_end::Integer
+    first_cond::Integer
+    cblock_end::Integer
+end
 
 mutable struct Condenser
-    cxx_Condenser::Cxx_Condenser
-    cxx_vblocks::vblock_array
-    cxx_cblocks::cblock_array
-    cxx_hsizes::int_array
-    cxx_targets::condensing_targets
-    Condenser(VBLOCKS::Array{vblock, 1}, CBLOCKS::Array{cblock, 1}, HSIZES::Array{Int32, 1}, TARGETS::Array{condensing_target, 1}, DEP_BOUNDS::Int32 = Int32(2)) = begin
-        vblock_arr = vblock_array(Int32(length(VBLOCKS)))
-        for i = 1:length(VBLOCKS)
-            array_set(vblock_arr, i, VBLOCKS[i])
+    #Condenser constructor data
+    vblock_array_obj::Ptr{Cvoid}
+    cblock_array_obj::Ptr{Cvoid}
+    hsize_array_obj::Ptr{Cvoid}
+    target_array_obj::Ptr{Cvoid}
+    
+    #Actual C++ side condenser class instance
+    Condenser_obj::Ptr{Cvoid}
+    
+    #C++ side input
+    Matrix_grad_obj::Ptr{Cvoid}
+    Sparse_Matrix_constr_jac::Ptr{Cvoid}
+    SymMatrix_array_hess::Ptr{Cvoid}
+    Matrix_lb_var::Ptr{Cvoid}
+    Matrix_ub_var::Ptr{Cvoid}
+    Matrix_lb_con::Ptr{Cvoid}
+    Matrix_ub_con::Ptr{Cvoid}
+    
+    #C++ side output
+    Matrix_condensed_grad_obj::Ptr{Cvoid}
+    Sparse_Matrix_condensed_constr_jac::Ptr{Cvoid}
+    SymMatrix_array_condensed_hess::Ptr{Cvoid}
+    Matrix_condensed_lb_var::Ptr{Cvoid}
+    Matrix_condensed_ub_var::Ptr{Cvoid}
+    Matrix_condensed_lb_con::Ptr{Cvoid}
+    Matrix_condensed_ub_con::Ptr{Cvoid}
+    
+    #C++ side [cond]ensed QP solution and [rest]ored uncondensed QP solution
+    Matrix_xi_cond::Ptr{Cvoid}
+    Matrix_lambda_cond::Ptr{Cvoid}
+    Matrix_xi_rest::Ptr{Cvoid}
+    Matrix_lambda_rest::Ptr{Cvoid}
+    
+    Condenser(arg_vblocks::Vector{vblock}, arg_cblocks::Vector{cblock}, arg_hsizes::Vector{INT_T}, arg_targets::Vector{condensing_target}, arg_dep_bounds::INT_T = Int32(2)) where INT_T <: Integer = begin
+        new_vblock_array_obj = ccall(@dlsym(libblockSQP, "create_vblock_array"), Ptr{Cvoid}, (Cint,), Cint(length(arg_vblocks)))
+        for i = 1:length(arg_vblocks)
+            ccall(@dlsym(libblockSQP, "vblock_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cchar), new_vblock_array_obj, Cint(i - 1), Cint(arg_vblocks[i].size), Cchar(arg_vblocks[i].dependent))
+        end
+        new_cblock_array_obj = ccall(@dlsym(libblockSQP, "create_cblock_array"), Ptr{Cvoid}, (Cint,), Cint(length(arg_cblocks)))
+        for i = 1:length(arg_cblocks)
+            ccall(@dlsym(libblockSQP, "cblock_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint), new_cblock_array_obj, Cint(i - 1), Cint(arg_cblocks[i].size))
+        end
+        new_hsize_array_obj = ccall(@dlsym(libblockSQP, "create_hsize_array"), Ptr{Cvoid}, (Cint,), Cint(length(arg_hsizes)))
+        for i = 1:length(arg_hsizes)
+            ccall(@dlsym(libblockSQP, "hsize_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint), new_hsize_array_obj, Cint(i - 1), Cint(arg_hsizes[i]))
+        end
+        new_target_array_obj = ccall(@dlsym(libblockSQP, "create_target_array"), Ptr{Cvoid}, (Cint,), Cint(length(arg_targets)))
+        for i = 1:length(arg_targets)
+            ccall(@dlsym(libblockSQP, "target_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cint, Cint, Cint, Cint), new_target_array_obj, Cint(i - 1), Cint(arg_targets[i].n_stages), Cint(arg_targets[i].first_free), Cint(arg_targets[i].vblock_end), Cint(arg_targets[i].first_cond), Cint(arg_targets[i].cblock_end))
         end
         
-        cblock_arr = cblock_array(Int32(length(CBLOCKS)))
-        for i = 1:length(CBLOCKS)
-            array_set(cblock_arr, i, CBLOCKS[i])
-        end
-
-        hsize_arr = int_array(Int32(length(HSIZES)))
-        for i = 1:length(HSIZES)
-            array_set(hsize_arr, i, HSIZES[i])
-        end
-
-        target_arr = condensing_targets(Int32(length(TARGETS)))
-        for i = 1:length(TARGETS)
-            array_set(target_arr, i, TARGETS[i])
-        end
+        # Pass ownership of vblock_array, cblock_array, hsize_array, target_array
+        Condenser_obj = ccall(@dlsym(libblockSQP, "create_Condenser"), Ptr{Cvoid}, (Ptr{Cvoid}, Cint, Ptr{Cvoid}, Cint, Ptr{Cvoid}, Cint, Ptr{Cvoid}, Cint, Cint), new_vblock_array_obj, Cint(length(arg_vblocks)), new_cblock_array_obj, Cint(length(arg_cblocks)), new_hsize_array_obj, Cint(length(arg_hsizes)), new_target_array_obj, Cint(length(arg_targets)), Cint(arg_dep_bounds))
         
-        cond = construct_Condenser(CxxPtr(vblock_arr), CxxRef(cblock_arr), CxxRef(hsize_arr), CxxRef(target_arr), DEP_BOUNDS)
-        new(cond, vblock_arr, cblock_arr, hsize_arr, target_arr)
+        nVar = ccall(@dlsym(libblockSQP, "Condenser_nVar"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        nCon = ccall(@dlsym(libblockSQP, "Condenser_nCon"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        nBlocks = ccall(@dlsym(libblockSQP, "Condenser_nBlocks"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        
+        new_grad_obj = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nVar, Cint(1))
+        new_constr_jac = ccall(@dlsym(libblockSQP, "create_Sparse_Matrix_default"), Ptr{Cvoid}, ())
+        new_hess = ccall(@dlsym(libblockSQP, "create_SymMatrix_array"), Ptr{Cvoid}, (Cint,), nBlocks)
+        for i = Cint(1):nBlocks
+            ccall(@dlsym(libblockSQP, "SymMatrix_array_index_resize"), Cvoid, (Ptr{Cvoid}, Cint, Cint), new_hess, Cint(i - 1), Cint(arg_hsizes[i]))
+        end
+        new_lb_var = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nVar, Cint(1));
+        new_ub_var = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nVar, Cint(1));
+        new_lb_con = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nCon, Cint(1));
+        new_ub_con = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nCon, Cint(1));
+        
+        condensed_nVar = ccall(@dlsym(libblockSQP, "Condenser_condensed_nVar"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        condensed_nCon = ccall(@dlsym(libblockSQP, "Condenser_condensed_nCon"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        condensed_nBlocks = ccall(@dlsym(libblockSQP, "Condenser_condensed_nBlocks"), Cint, (Ptr{Cvoid},), Condenser_obj)
+        
+        new_condensed_grad_obj = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), condensed_nVar, Cint(1))
+        new_condensed_constr_jac = ccall(@dlsym(libblockSQP, "create_Sparse_Matrix_default"), Ptr{Cvoid}, ())
+        new_condensed_hess = ccall(@dlsym(libblockSQP, "create_SymMatrix_array"), Ptr{Cvoid}, (Cint,), condensed_nBlocks)
+        new_condensed_lb_var = ccall(@dlsym(libblockSQP, "create_Matrix_default"), Ptr{Cvoid}, ());
+        new_condensed_ub_var = ccall(@dlsym(libblockSQP, "create_Matrix_default"), Ptr{Cvoid}, ());
+        new_condensed_lb_con = ccall(@dlsym(libblockSQP, "create_Matrix_default"), Ptr{Cvoid}, ());
+        new_condensed_ub_con = ccall(@dlsym(libblockSQP, "create_Matrix_default"), Ptr{Cvoid}, ());
+        
+        new_xi_cond = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), condensed_nVar, Cint(1))
+        new_lambda_cond = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), condensed_nVar + condensed_nCon, Cint(1))
+        
+        new_xi_rest = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nVar, Cint(1))
+        new_lambda_rest = ccall(@dlsym(libblockSQP, "create_Matrix"), Ptr{Cvoid}, (Cint, Cint), nVar + nCon, Cint(1))
+        
+        new_Condenser = new(new_vblock_array_obj, new_cblock_array_obj, new_hsize_array_obj, new_target_array_obj,
+                            Condenser_obj,
+                            new_grad_obj, new_constr_jac, new_hess, new_lb_var, new_ub_var, new_lb_con, new_ub_con,
+                            new_condensed_grad_obj, new_condensed_constr_jac, new_condensed_hess, new_condensed_lb_var, new_condensed_ub_var, new_condensed_lb_con, new_condensed_ub_con,
+                            new_xi_cond, new_lambda_cond,
+                            new_xi_rest, new_lambda_rest
+                            )
+        
+        function Condenser_finalizer(J_cond::Condenser)
+            #=
+            ccall(@dlsym(libblockSQP, "delete_vblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.vblock_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_cblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.cblock_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_hsize_array"), Cvoid, (Ptr{Cvoid},), J_cond.hsize_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_target_array"), Cvoid, (Ptr{Cvoid},), J_cond.target_array_obj)
+            
+            ccall(@dlsym(libblockSQP, "delete_Condenser"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
+            
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_grad_obj)
+            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_constr_jac)
+            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_hess)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_con)
+            
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_grad_obj)
+            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac)
+            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_condensed_hess)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_con)
+            
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_cond)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_rest)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest)
+            =#
+            
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_rest)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_cond)
+
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_var)
+            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_condensed_hess)
+            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_grad_obj)
+
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_con)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_var)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_var)
+            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_hess)
+            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Sparse_Matrix_constr_jac)
+            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_grad_obj)
+
+            ccall(@dlsym(libblockSQP, "delete_Condenser"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
+
+            ccall(@dlsym(libblockSQP, "delete_target_array"), Cvoid, (Ptr{Cvoid},), J_cond.target_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_hsize_array"), Cvoid, (Ptr{Cvoid},), J_cond.hsize_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_cblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.cblock_array_obj)
+            ccall(@dlsym(libblockSQP, "delete_vblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.vblock_array_obj)
+        end
+        finalizer(Condenser_finalizer, new_Condenser)
     end
-
 end
 
-function print_info(arg_C::Condenser)
-    print_debug(arg_C.cxx_Condenser)
+function print_info(J_cond::Condenser)
+    ccall(@dlsym(libblockSQP, "Condenser_print_debug"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
 end
 
-function condensed_num_hessblocks(cond::Condenser)
-    return get_condensed_num_hessblocks(cond.cxx_Condenser)
+function condensed_nBlocks(J_cond::Condenser)
+    return ccall(@dlsym(libblockSQP, "Condenser_condensed_nBlocks"), Cint, (Ptr{Cvoid},), J_cond.Condenser_obj)
 end
 
-mutable struct sparse_Matrix
+
+mutable struct Sparse_Matrix
     m::Int32
     n::Int32
-    nz::Array{Float64, 1}
-    row::Array{Int32, 1}
-    colind::Array{Int32, 1}
+    nz::Vector{Cdouble}
+    row::Vector{Cint}
+    colind::Vector{Cint}
+    Sparse_Matrix(arg_m::Integer, arg_n::Integer, arg_nz::Vector{FLOAT_T}, arg_row::Vector{INT_T}, arg_colind::Vector{INT_T}) where {FLOAT_T <: AbstractFloat, INT_T <: Integer} = begin
+        new(arg_m, arg_n, Cdouble[Cdouble(v) for v in arg_nz], Cint[Cint(v) for v in arg_row], Cint[Cint(v) for v in arg_colind])
+    end
 end
-sparse_Matrix() = sparse_Matrix(Int32(0), Int32(0), Float64[], Int32[], Int32[])
+
+Sparse_Matrix() = Sparse_Matrix(Cint(0), Cint(0), Cdouble[], Cint[], Cint[])
+Sparse_Matrix(arg_m::Integer, arg_n::Integer, arg_nnz::Integer) = begin
+    colind = Vector{Cint}(undef, arg_n + 1)
+    colind[arg_n + 1] = Cint(arg_nnz)
+    return Sparse_Matrix(Cint(arg_m), Cint(arg_n), Vector{Cdouble}(undef, arg_nnz), Vector{Cint}(undef, arg_nnz), colind)
+end
 
 
-function full_condense!(J_cond::Condenser, grad_obj::Array{Float64, 1}, constr_jac::sparse_Matrix, hess::Array{Array{Float64, 2}, 1}, lb_var::Array{Float64, 1}, ub_var::Array{Float64, 1}, lb_con::Array{Float64, 1}, ub_con::Array{Float64, 1})
-    #condensed_h::Array{Float64, 1}, condensed_jacobian::sparse_Matrix, condensed_hess::Array{Array{Float64, 2}, 1}, condensed_lb_var::Array{Float64, 1}, condensed_ub_var::Array{Float64, 1}, condensed_lb_con::Array{Float64, 1}, condensed_ub_con::Array{Float64, 1})
+function full_condense!(J_cond::Condenser, grad_obj::Vector{Float64}, constr_jac::Sparse_Matrix, hess::Vector{Matrix{Float64}}, lb_var::Vector{Float64}, ub_var::Vector{Float64}, lb_con::Vector{Float64}, ub_con::Vector{Float64})
+    cond = J_cond.Condenser_obj
     
-    cond = J_cond.cxx_Condenser
-    nVar = get_num_vars(cond)
-    nCon = get_num_cons(cond)
-    nnz = length(constr_jac.nz)
-    num_hessblocks = get_num_hessblocks(cond)
-
-    M_grad_obj = BSQP_Matrix(nVar, Int32(1))
-    grad_obj_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_grad_obj).cpp_object, nVar, own = false)
-    grad_obj_data[:] = grad_obj
-
-    M_constr_jac = alloc_Cxx_Sparse_Matrix(nCon, nVar, nnz)
-    constr_nz_data = unsafe_wrap(Array{Float64, 1}, show_nz(M_constr_jac).cpp_object, nnz, own = false)
-    constr_row_data = unsafe_wrap(Array{Int32, 1}, show_row(M_constr_jac).cpp_object, nnz, own = false)
-    constr_colind_data = unsafe_wrap(Array{Int32, 1}, show_colind(M_constr_jac).cpp_object, nVar+1, own = false)
-    constr_nz_data[:] = constr_jac.nz
-    constr_row_data[:] = constr_jac.row
-    constr_colind_data[:] = constr_jac.colind
-
-
-    hsize_ptr = get_hess_block_sizes(cond)
-    hess_block_sizes = unsafe_wrap(Array{Int32, 1}, hsize_ptr.cpp_object, num_hessblocks, own = false)
-
-    M_hess = SymMat_array(num_hessblocks)
-    for i = 1:num_hessblocks
-        hsize = hess_block_sizes[i]
-        M_hblock = array_get_ptr(M_hess, i)
-        set_size!(M_hblock, hsize)
-        
-        hblock_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_hblock).cpp_object, Int64(hsize*(hsize + 1)//2), own = false)
-        full_to_lower!(reshape(hess[i], Int64(hsize^2)), hblock_data, hsize)
+    nVar = ccall(@dlsym(libblockSQP, "Condenser_nVar"), Cint, (Ptr{Cvoid},), cond)
+    nCon = ccall(@dlsym(libblockSQP, "Condenser_nCon"), Cint, (Ptr{Cvoid},), cond)
+    nBlocks = ccall(@dlsym(libblockSQP, "Condenser_nBlocks"), Cint, (Ptr{Cvoid},), cond)
+    
+    nnz = Cint(length(constr_jac.nz))
+    @assert nnz == constr_jac.colind[constr_jac.n + 1]
+    
+    unsafe_wrap(Vector{Cdouble}, 
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_grad_obj), 
+                Cint(nVar);
+                own = false
+                )[:] = grad_obj
+    
+    ccall(@dlsym(libblockSQP, "Sparse_Matrix_set_structure"), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cint), J_cond.Sparse_Matrix_constr_jac, nCon, nVar, nnz)
+    
+    unsafe_wrap(Vector{Cdouble}, 
+                ccall(@dlsym(libblockSQP, "Sparse_Matrix_nz"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_constr_jac), 
+                nnz; 
+                own = false
+                )[:] = constr_jac.nz
+    
+    unsafe_wrap(Vector{Cint}, 
+                ccall(@dlsym(libblockSQP, "Sparse_Matrix_row"), Ptr{Cint}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_constr_jac), 
+                nnz; 
+                own = false
+                )[:] = constr_jac.row
+    
+    unsafe_wrap(Vector{Cint}, 
+                ccall(@dlsym(libblockSQP, "Sparse_Matrix_colind"), Ptr{Cint}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_constr_jac), 
+                Cint(constr_jac.n + 1);
+                own = false
+                )[:] = constr_jac.colind
+    
+    nBlocks = ccall(@dlsym(libblockSQP, "Condenser_nBlocks"), Cint, (Ptr{Cvoid},), cond)
+    hsizes = unsafe_wrap(Vector{Cint}, 
+                         ccall(@dlsym(libblockSQP, "Condenser_hsizes"), Ptr{Cint}, (Ptr{Cvoid},), cond), 
+                         nBlocks; 
+                         own = false)
+    for i = Cint(1):nBlocks
+        hsize = hsizes[i]
+        hessblock_data = unsafe_wrap(Vector{Cdouble}, 
+                                     ccall(@dlsym(libblockSQP, "SymMatrix_array_index_array"), Ptr{Cdouble}, (Ptr{Cvoid}, Cint), J_cond.SymMatrix_array_hess, Cint(i - 1)), 
+                                     Cint((hsize*(hsize + 1))//2);
+                                     own = false)
+        full_to_lower!(hessblock_data, reshape(hess[i], Int64(hsize^2)), hsize)
     end
-
-    M_lb_var = BSQP_Matrix(nVar, Int32(1))
-    lb_var_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_lb_var).cpp_object, nVar, own = false)
-    lb_var_data[:] = lb_var
     
-    M_ub_var = BSQP_Matrix(nVar, Int32(1))
-    ub_var_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_ub_var).cpp_object, nVar, own = false)
-    ub_var_data[:] = ub_var
-
-    M_lb_con = BSQP_Matrix(nCon, Int32(1))
-    lb_con_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_lb_con).cpp_object, nCon, own = false)
-    lb_con_data[:] = lb_con
-
-    M_ub_con = BSQP_Matrix(nCon, Int32(1))
-    ub_con_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_ub_con).cpp_object, nCon, own = false)
-    ub_con_data[:] = ub_con
-
-
-    #Return arguments, condensed QP
-    condensed_num_hessblocks = get_condensed_num_hessblocks(cond)
-
-    M_condensed_h = BSQP_Matrix()
-    M_condensed_jacobian = Cxx_Sparse_Matrix()
-    M_condensed_hess = SymMat_array(condensed_num_hessblocks)
-    M_condensed_lb_var = BSQP_Matrix()
-    M_condensed_ub_var = BSQP_Matrix()
-    M_condensed_lb_con = BSQP_Matrix()
-    M_condensed_ub_con = BSQP_Matrix()
-
-    Cxx_full_condense!(cond, M_grad_obj, M_constr_jac, M_hess, M_lb_var, M_ub_var, M_lb_con, M_ub_con,
-        M_condensed_h, M_condensed_jacobian, M_condensed_hess, M_condensed_lb_var, M_condensed_ub_var, M_condensed_lb_con, M_condensed_ub_con)
-
-    condensed_num_vars = get_condensed_num_vars(cond)
-    condensed_num_cons = get_condensed_num_cons(cond)
-    condensed_nnz = get_nnz(M_condensed_jacobian)
-
-    condensed_h = unsafe_wrap(Array{Float64, 1}, release!(M_condensed_h).cpp_object, condensed_num_vars, own = true)
-
-    c_nz_ptr = show_nz(M_condensed_jacobian)
-    c_row_ptr = show_row(M_condensed_jacobian)
-    c_colind_ptr = show_colind(M_condensed_jacobian)
-    disown!(M_condensed_jacobian)
-
-    condensed_jacobian = sparse_Matrix()
-    condensed_jacobian.m = condensed_num_cons
-    condensed_jacobian.n = condensed_num_vars
-    condensed_jacobian.nz = unsafe_wrap(Array{Float64, 1}, c_nz_ptr.cpp_object, condensed_nnz, own = true)
-    condensed_jacobian.row = unsafe_wrap(Array{Int32, 1}, c_row_ptr.cpp_object, condensed_nnz, own = true)
-    condensed_jacobian.colind = unsafe_wrap(Array{Int32, 1}, c_colind_ptr.cpp_object, condensed_num_vars + 1, own = true)
-
-    condensed_hess = Array{Array{Float64, 2}, 1}(undef, condensed_num_hessblocks)
-
-    for i = 1:condensed_num_hessblocks
-        chblock = array_get_ptr(M_condensed_hess, i)
-        b_size = size_1(chblock)
-        chblock_data = unsafe_wrap(Array{Float64, 1}, show_ptr(chblock).cpp_object, Int64(b_size*(b_size+1)//2), own = false)
-        condensed_hess[i] = Array{Float64, 2}(undef, b_size, b_size)
-        lower_to_full!(chblock_data, reshape(condensed_hess[i], Int64(b_size)^2), b_size)
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_lb_var),
+                nVar;
+                own = false
+                )[:] = lb_var
+    
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_ub_var),
+                nVar;
+                own = false
+                )[:] = ub_var
+    
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_lb_con),
+                nCon;
+                own = false
+                )[:] = lb_con
+    
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_ub_con),
+                nCon;
+                own = false
+                )[:] = ub_con
+    
+    ccall(@dlsym(libblockSQP, "Condenser_full_condense"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+                cond, 
+                J_cond.Matrix_grad_obj, J_cond.Sparse_Matrix_constr_jac, J_cond.SymMatrix_array_hess, J_cond.Matrix_lb_var, J_cond.Matrix_ub_var, J_cond.Matrix_lb_con, J_cond.Matrix_ub_con,
+                J_cond.Matrix_condensed_grad_obj, J_cond.Sparse_Matrix_condensed_constr_jac, J_cond.SymMatrix_array_condensed_hess, J_cond.Matrix_condensed_lb_var, J_cond.Matrix_condensed_ub_var, J_cond.Matrix_condensed_lb_con, J_cond.Matrix_condensed_ub_con
+          )
+    
+    condensed_nVar = ccall(@dlsym(libblockSQP, "Condenser_condensed_nVar"), Cint, (Ptr{Cvoid},), cond)
+    condensed_nCon = ccall(@dlsym(libblockSQP, "Condenser_condensed_nCon"), Cint, (Ptr{Cvoid},), cond)
+    condensed_nnz = ccall(@dlsym(libblockSQP, "Sparse_Matrix_nnz"), Cint, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac)
+    
+    condensed_grad_obj = Vector{Cdouble}(undef, condensed_nVar)
+    condensed_grad_obj[:] = unsafe_wrap(Vector{Cdouble},
+                                        ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_condensed_grad_obj),
+                                        condensed_nVar;
+                                        own = false
+                                        )
+    
+    condensed_constr_jac = Sparse_Matrix(condensed_nCon, condensed_nVar, condensed_nnz)
+    condensed_constr_jac.nz[:] = unsafe_wrap(Vector{Cdouble},
+                                             ccall(@dlsym(libblockSQP, "Sparse_Matrix_nz"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac),
+                                             condensed_nnz;
+                                             own = false
+                                             )
+    condensed_constr_jac.row[:] = unsafe_wrap(Vector{Cint},
+                                              ccall(@dlsym(libblockSQP, "Sparse_Matrix_row"), Ptr{Cint}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac),
+                                              condensed_nnz;
+                                              own = false
+                                              )
+    condensed_constr_jac.colind[:] = unsafe_wrap(Vector{Cint},
+                                                 ccall(@dlsym(libblockSQP, "Sparse_Matrix_colind"), Ptr{Cint}, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac),
+                                                 condensed_nVar + 1;
+                                                 own = false
+                                                 )
+    
+    condensed_nBlocks = ccall(@dlsym(libblockSQP, "Condenser_condensed_nBlocks"), Cint, (Ptr{Cvoid},), cond)
+    condensed_hsizes = unsafe_wrap(Vector{Cint}, 
+                                   ccall(@dlsym(libblockSQP, "Condenser_condensed_hsizes"), Ptr{Cint}, (Ptr{Cvoid},), cond),
+                                   condensed_nBlocks;
+                                   own = false)
+    
+    condensed_hess = Vector{Matrix{Cdouble}}(undef, condensed_nBlocks)
+    for i = 1:condensed_nBlocks
+        condensed_hsize = condensed_hsizes[i]
+        condensed_hess[i] = Matrix{Float64}(undef, condensed_hsize, condensed_hsize)
+        condensed_hessblock_data = unsafe_wrap(Vector{Cdouble},
+                                               ccall(@dlsym(libblockSQP, "SymMatrix_array_index_array"), Ptr{Cdouble}, (Ptr{Cvoid}, Cint), J_cond.SymMatrix_array_condensed_hess, Cint(i - 1)),
+                                               condensed_hsize^2;
+                                               own = false
+                                               )
+        lower_to_full!(reshape(condensed_hess[i], Int64(condensed_hsize^2)), condensed_hessblock_data, condensed_hsize)
     end
-
-    condensed_lb_var = unsafe_wrap(Array{Float64, 1}, release!(M_condensed_lb_var).cpp_object, condensed_num_vars, own = true)
-    condensed_ub_var = unsafe_wrap(Array{Float64, 1}, release!(M_condensed_ub_var).cpp_object, condensed_num_vars, own = true)
-    condensed_lb_con = unsafe_wrap(Array{Float64, 1}, release!(M_condensed_lb_con).cpp_object, condensed_num_cons, own = true)
-    condensed_ub_con = unsafe_wrap(Array{Float64, 1}, release!(M_condensed_ub_con).cpp_object, condensed_num_cons, own = true)
     
-    return condensed_h, condensed_jacobian, condensed_hess, condensed_lb_var, condensed_ub_var, condensed_lb_con, condensed_ub_con
-
+    condensed_lb_var = Vector{Cdouble}(undef, condensed_nVar)
+    condensed_ub_var = Vector{Cdouble}(undef, condensed_nVar)
+    condensed_lb_con = Vector{Cdouble}(undef, condensed_nCon)
+    condensed_ub_con = Vector{Cdouble}(undef, condensed_nCon)
+    condensed_lb_var[:] = unsafe_wrap(Vector{Cdouble},
+                                      ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_var),
+                                      condensed_nVar;
+                                      own = false
+                                      )
+    condensed_ub_var[:] = unsafe_wrap(Vector{Cdouble},
+                                      ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_var),
+                                      condensed_nVar;
+                                      own = false
+                                      )
+    condensed_lb_con[:] = unsafe_wrap(Vector{Cdouble},
+                                      ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_con),
+                                      condensed_nCon;
+                                      own = false
+                                      )
+    condensed_ub_con[:] = unsafe_wrap(Vector{Cdouble},
+                                      ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_con),
+                                      condensed_nCon;
+                                      own = false
+                                      )
+    return condensed_grad_obj, condensed_constr_jac, condensed_hess, condensed_lb_var, condensed_ub_var, condensed_lb_con, condensed_ub_con
 end
 
 function recover_var_mult(J_cond::Condenser, xi_cond::Array{Float64, 1}, lambda_cond::Array{Float64, 1})
-    cond = J_cond.cxx_Condenser
-
-    nVar = get_num_vars(cond)
-    nCon = get_num_cons(cond)
-    condensed_num_vars = get_condensed_num_vars(cond)
-    condensed_num_cons = get_condensed_num_cons(cond)
-
-    M_xi_cond = BSQP_Matrix(condensed_num_vars, Int32(1))
-    M_lambda_cond = BSQP_Matrix(condensed_num_vars + condensed_num_cons, Int32(1))
+    cond = J_cond.Condenser_obj
     
-    xi_cond_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_xi_cond).cpp_object, condensed_num_vars, own = false)
-    xi_cond_data[:] = xi_cond
-
-    lambda_cond_data = unsafe_wrap(Array{Float64, 1}, show_ptr(M_lambda_cond).cpp_object, condensed_num_vars + condensed_num_cons, own = false)
-    lambda_cond_data[:] = lambda_cond
-
-    M_xi_rest = BSQP_Matrix()
-    M_lambda_rest = BSQP_Matrix()
-    Cxx_recover_var_mult!(cond, M_xi_cond, M_lambda_cond, M_xi_rest, M_lambda_rest)
-
-    xi_rest = unsafe_wrap(Array{Float64, 1}, release!(M_xi_rest).cpp_object, nVar, own = true)
-    lambda_rest = unsafe_wrap(Array{Float64, 1}, release!(M_lambda_rest).cpp_object, nVar + nCon, own = true)
-
+    nVar = ccall(@dlsym(libblockSQP, "Condenser_nVar"), Cint, (Ptr{Cvoid},), cond)
+    nCon = ccall(@dlsym(libblockSQP, "Condenser_nCon"), Cint, (Ptr{Cvoid},), cond)
+    condensed_nVar = ccall(@dlsym(libblockSQP, "Condenser_condensed_nVar"), Cint, (Ptr{Cvoid},), cond)
+    condensed_nCon = ccall(@dlsym(libblockSQP, "Condenser_condensed_nCon"), Cint, (Ptr{Cvoid},), cond)
+    
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_xi_cond),
+                condensed_nVar;
+                own = false
+                )[:] = xi_cond
+    unsafe_wrap(Vector{Cdouble},
+                ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond),
+                condensed_nVar + condensed_nCon;
+                own = false
+                )[:] = lambda_cond
+    
+    ccall(@dlsym(libblockSQP, "Condenser_recover_var_mult"), Cvoid, 
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}), 
+        cond, J_cond.Matrix_xi_cond, J_cond.Matrix_lambda_cond, J_cond.Matrix_xi_rest, J_cond.Matrix_lambda_rest)
+    
+    xi_rest = Vector{Cdouble}(undef, nVar)
+    lambda_rest = Vector{Cdouble}(undef, nVar + nCon)
+    xi_rest[:] = unsafe_wrap(Vector{Cdouble},
+                             ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_xi_rest),
+                             nVar;
+                             own = false
+                             )
+    lambda_rest[:] = unsafe_wrap(Vector{Cdouble},
+                                 ccall(@dlsym(libblockSQP, "Matrix_array"), Ptr{Cdouble}, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest),
+                                 nVar + nCon;
+                                 own = false
+                                 )
     return xi_rest, lambda_rest
 end
 
-
-
-
-
-#=
-
-struct condensing_Solver
-    #C++ side objects
-    BSQP_solver::Cxx_SCQPmethod
-    BSQP_problem::Problemform
-    BSQP_options::Cxx_SQPoptions
-    QPsol_options::Cxx_QPsolver_options
-    BSQP_stats::SQPstats
-    
-    #Julia side objects
-    Jul_Problem::blockSQPProblem
-    Options::blockSQPOptions
-    Jul_Condenser::Condenser
-end
-
-condensing_Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, cxx_stats::SQPstats, J_cond::Condenser) = begin
-    print("WARNING: This code is untested!\n")
-    #Create problem class on the C++ side
-    cxx_prob = Problemform(J_prob.nVar, J_prob.nCon)
-    set_scope(cxx_prob, pointer_from_objref(J_prob))
-    set_dense_init(cxx_prob, @safe_cfunction(initialize_dense, Nothing, (Ptr{Nothing}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64})))
-    set_dense_eval(cxx_prob, @safe_cfunction(evaluate_dense, Nothing, (Ptr{Nothing}, ConstCxxPtr{Float64}, ConstCxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{CxxPtr{Float64}}, Int32, CxxPtr{Int32})))
-    set_simple_eval(cxx_prob, @safe_cfunction(evaluate_simple, Nothing, (Ptr{Nothing}, ConstCxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Int32})))
-    set_sparse_init(cxx_prob, @safe_cfunction(initialize_sparse, Nothing, (Ptr{Nothing}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Int32}, CxxPtr{Int32})))
-    set_sparse_eval(cxx_prob, @safe_cfunction(evaluate_sparse, Nothing, (Ptr{Nothing}, ConstCxxPtr{Float64}, ConstCxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Float64}, CxxPtr{Int32}, CxxPtr{Int32}, CxxPtr{CxxPtr{Float64}}, Int32, CxxPtr{Int32})))
-    set_continuity_restoration(cxx_prob, @safe_cfunction(reduceConstrVio, Nothing, (Ptr{Nothing}, CxxPtr{Float64}, CxxPtr{Int32})))
-    set_blockIdx(cxx_prob, J_prob.blockIdx)
-    set_nnz(cxx_prob, J_prob.nnz)
-    set_bounds(cxx_prob, J_prob.lb_var, J_prob.ub_var, J_prob.lb_con, J_prob.ub_con, J_prob.objLo, J_prob.objUp)
-
-    #Create options class on the C++ side
-    cxx_opts, cxx_QPsol_opts = set_cxx_options(opts)
-
-    #Create method class on the C++ side
-    cxx_method = SCQPmethod(CxxPtr(cxx_prob), CxxPtr(cxx_opts), CxxPtr(cxx_stats), CxxPtr(J_cond.cxx_Condenser))
-
-    condensing_Solver(cxx_method, cxx_prob, cxx_opts, cxx_QPsol_opts, cxx_stats, J_prob, opts, J_cond)
-end
-
-=#
 
 
 

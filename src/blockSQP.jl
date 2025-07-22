@@ -45,6 +45,6 @@ module blockSQP
 
     include("solver.jl")
     
-    # include("condenser.jl")
+    include("condenser.jl")
 
 end # module blockSQP

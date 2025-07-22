@@ -36,7 +36,7 @@ blockSQP.print_info(cond)
 NZ = Float64[-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,1,1,1,1]
 ROW = Int32[0,1,6,0,2,6,1,3,6,2,3,6,2,4,6,3,5,6,4,5,6,4,6,5,6,6]
 COLIND = Int32[0,3,6,9,12,15,18,21,23,25,26]
-con_jac = blockSQP.sparse_Matrix(7, 10, NZ, ROW, COLIND)
+con_jac = blockSQP.Sparse_Matrix(7, 10, NZ, ROW, COLIND)
 
 
 full_block = Float64[0.75;-0.25;-0.25;; -0.25; 0.75; 0.25;; -0.25; 0.25; 1.25]
