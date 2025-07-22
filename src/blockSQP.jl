@@ -2,7 +2,6 @@ module blockSQP
 	import Base.setproperty!, Base.getproperty
 
 	using CxxWrap
-    using OpenBLAS32
     using SparseArrays, Symbolics
     using blockSQP_mumps_jll
 
