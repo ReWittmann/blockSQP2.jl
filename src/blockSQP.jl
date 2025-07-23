@@ -33,9 +33,22 @@ module blockSQP
     """
     struct BlockSQPOpt end
     export BlockSQPOpt
+    
+    # Structs to hold structure data used for scaling and condensing
+    struct vblock
+        size::Integer
+        dependent::Bool 
+    end
 
+    struct cblock
+        size::Integer
+    end
+
+    
     include("eval.jl")
-
+    
+    include("condenser.jl")
+    
     include("problem.jl")
 
     include("options.jl")
@@ -45,6 +58,5 @@ module blockSQP
 
     include("solver.jl")
     
-    include("condenser.jl")
 
 end # module blockSQP

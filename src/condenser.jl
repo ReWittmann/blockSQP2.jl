@@ -1,7 +1,3 @@
-struct cblock
-    size::Integer
-end
-
 struct condensing_target
     n_stages::Integer
     first_free::Integer
@@ -107,36 +103,6 @@ mutable struct Condenser
                             )
         
         function Condenser_finalizer(J_cond::Condenser)
-            #=
-            ccall(@dlsym(libblockSQP, "delete_vblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.vblock_array_obj)
-            ccall(@dlsym(libblockSQP, "delete_cblock_array"), Cvoid, (Ptr{Cvoid},), J_cond.cblock_array_obj)
-            ccall(@dlsym(libblockSQP, "delete_hsize_array"), Cvoid, (Ptr{Cvoid},), J_cond.hsize_array_obj)
-            ccall(@dlsym(libblockSQP, "delete_target_array"), Cvoid, (Ptr{Cvoid},), J_cond.target_array_obj)
-            
-            ccall(@dlsym(libblockSQP, "delete_Condenser"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
-            
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_grad_obj)
-            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_constr_jac)
-            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_hess)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_var)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_var)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lb_con)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_ub_con)
-            
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_grad_obj)
-            ccall(@dlsym(libblockSQP, "delete_Sparse_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Sparse_Matrix_condensed_constr_jac)
-            ccall(@dlsym(libblockSQP, "delete_SymMatrix_array"), Cvoid, (Ptr{Cvoid},), J_cond.SymMatrix_array_condensed_hess)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_var)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_var)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_lb_con)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_condensed_ub_con)
-            
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_cond)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_rest)
-            ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest)
-            =#
-            
             ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest)
             ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_rest)
             ccall(@dlsym(libblockSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond)
@@ -387,13 +353,5 @@ function recover_var_mult(J_cond::Condenser, xi_cond::Array{Float64, 1}, lambda_
                                  )
     return xi_rest, lambda_rest
 end
-
-
-
-
-
-
-
-
 
 

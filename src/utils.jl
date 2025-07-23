@@ -27,16 +27,6 @@ function make_sparse!(B_prob::blockSQPProblem, nnz::Integer, jac_nz::Function, j
     B_prob.nnz = Cint(nnz)
 end
 
-function reduceConstrVio(Prob::Ptr{Cvoid}, xi::Ptr{Cdouble}, info::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
-    if Jprob.continuity_restoration == fnothing
-        info[] = Cint(1)
-    else
-        xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi.cpp_object, Jprob.nVar, own = false)
-        xi_arr[:] = Jprob.continuity_restoration(xi_arr)
-    end
-    return
-end
 
 # Some functions to deal with sparsity
 function compute_hessian_blocks(A::AbstractMatrix)

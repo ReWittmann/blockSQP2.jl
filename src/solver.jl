@@ -106,6 +106,10 @@ mutable struct Solver
             ccall(@dlsym(libblockSQP, "Problemspec_pass_vblocks"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), new_Problemspec_obj, vblock_array_obj, Cint(length(J_prob.vblocks)))
         end
         
+        if !isnothing(J_prob.cond)
+            ccall(@dlsym(libblockSQP, "Problemspec_set_cond"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, J_prob.cond.Condenser_obj)
+        end
+        
         #Create blockSQP and QPsolver options classes on the C++ side
         new_SQPoptions_obj, new_QPsolver_options_obj = create_cxx_options(opts)
         

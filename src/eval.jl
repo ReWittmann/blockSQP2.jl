@@ -9,13 +9,11 @@ function initialize_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble
 end
 
 function evaluate_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}, objval::Ptr{Cdouble}, constr::Ptr{Cdouble}, gradObj::Ptr{Cdouble}, constrJac::Ptr{Cdouble}, hess::Ptr{Ptr{Cdouble}}, dmode::Cint, info::Ptr{Cint})
-
     Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam, Jprob.nVar + Jprob.nCon, own = false)
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
-
-    #objval[] = Jprob.f(xi_arr)
+    
     unsafe_store!(objval, Cdouble(Jprob.f(xi_arr)))
     constr_arr[:] .= Jprob.g(xi_arr)
 
@@ -44,7 +42,6 @@ function evaluate_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble},
             end
         end
     end
-    #info[] = Cint(0);
     unsafe_store!(info, Cint(0))
     return
 end
@@ -53,12 +50,10 @@ function evaluate_simple(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, objval::Ptr{Cdoub
     Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
-
-    #objval[] = Jprob.f(xi_arr)
+    
     unsafe_store!(objval, Cdouble(Jprob.f(xi_arr)))
     constr_arr[:] .= Jprob.g(xi_arr)
-
-    #info[] = Cint(0);
+    
     unsafe_store!(info, Cint(0))
     return
 end
@@ -86,7 +81,6 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
     jac_nz_arr = unsafe_wrap(Array{Cdouble, 1}, jac_nz, Jprob.nnz, own = false)
 
-    #objval[] = Jprob.f(xi_arr)
     unsafe_store!(objval, Cdouble(Jprob.f(xi_arr)))
     constr_arr[:] .= Jprob.g(xi_arr)
 
@@ -117,7 +111,18 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}
             end
         end
     end
-    #info[] = Cint(0);
     unsafe_store!(info, Cint(0))
+    return
+end
+
+
+function reduceConstrVio(Prob::Ptr{Cvoid}, xi::Ptr{Cdouble}, info::Ptr{Cint})
+    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    if Jprob.continuity_restoration == fnothing
+        info[] = Cint(1)
+    else
+        xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi.cpp_object, Jprob.nVar, own = false)
+        xi_arr[:] = Jprob.continuity_restoration(xi_arr)
+    end
     return
 end
