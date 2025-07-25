@@ -4,7 +4,6 @@ authors = ["Christoph Plate <christoph.plate@ovgu.de>", "Reinhold Wittmann <rein
 version = "0.1.0"
 
 [deps]
-CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
@@ -19,7 +18,6 @@ OptimizationExtension = ["Optimization", "Pkg"]
 
 [compat]
 ComponentArrays = "0.15"
-CxxWrap = "0.16.0"
 ForwardDiff = "0.10"
 Ipopt = "1.10"
 Optimization = "~3.19.0, 4"
@@ -40,4 +38,4 @@ QPALM = "6c3e646c-629b-11e9-19d9-033f6272e8d4"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Optimization", "ComponentArrays", "ForwardDiff", "Ipopt", "OptimizationMOI", "LinearAlgebra"]
+test = ["Test", "Optimization", "ComponentArrays", "ForwardDiff", "Ipopt", "OptimizationMOI", "LinearAlgebra", "QPALM"]

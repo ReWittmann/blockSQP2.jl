@@ -184,13 +184,13 @@ function SciMLBase.__solve(
 
     meth = blockSQP.Solver(sqp_prob, opts, stats)
 
-    blockSQP.init(meth)
+    blockSQP.init!(meth)
     t0 = time()
     if cache.callback == Optimization.DEFAULT_CALLBACK
-        ret = blockSQP.run(meth, opts.maxiters, 1)
+        ret = blockSQP.run!(meth, opts.maxiters, 1)
     else
         for i=1:opts.maxiters
-            ret = blockSQP.run(meth, 1, 1)
+            ret = blockSQP.run!(meth, 1, 1)
             _iterate = blockSQP.get_primal_solution(meth)
             _obj = _loss(_iterate)[1]
             state = Optimization.OptimizationState(iter = i,
@@ -200,7 +200,7 @@ function SciMLBase.__solve(
             (cret || ret == 0) && break
         end
     end
-    blockSQP.finish(meth)
+    blockSQP.finish!(meth)
     t1 = time()
 
     # TODO: Save number of iterations somehow

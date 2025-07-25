@@ -43,27 +43,6 @@ function compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
         end
     end
 
-# Some functions to deal with sparsity
-function compute_hessian_blocks(A::AbstractMatrix)
-    _A = SparseArrays.SparseMatrixCSC(A)
-    compute_hessian_blocks(_A)
-end
-
-function compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
-    n = size(A,1) # assume quadratic matrix here, since it is a hessian
-    blockIdx = [0]
-    max_row = zeros(n)
-    for i=1:n
-        col_start, col_end = A.colptr[i], A.colptr[i+1]-1
-        if col_end >= col_start
-            corresponding_rows = A.rowval[col_start:col_end]
-            max_row[i] = maximum(corresponding_rows)
-        else
-            # TODO: How to handle empty column? For now: block continues
-            max_row[i] = i+1
-        end
-    end
-
     for i=1:n-1
         if max_row[i] <= i && max_row[i+1] > i
             append!(blockIdx, i)
@@ -87,3 +66,4 @@ function compute_hessian_blocks(f, g, num_x::Integer,
     display(sparse_hess)
     compute_hessian_blocks(sparse_hess)
 end
+

@@ -1,6 +1,6 @@
+#include("../src/blockSQP.jl")
+#using .blockSQP
 using blockSQP
-using Optimization
-using ForwardDiff
 
 #Set objective, constraints and their first derivatives
 f = x::Array{Float64, 1} -> x[1]^2 - 0.5*x[2]^2
@@ -21,11 +21,33 @@ lambda0 = Float64[0., 0., 0.]
 
 prob = blockSQP.blockSQPProblem(f,g, grad_f, jac_g,
                             lb_var, ub_var, lb_con, ub_con,
-                            x0, lambda0)
+                            x0, lambda0, blockIdx = Int32[0, 1, 2])
+
+
+
+QPopts = qpOASES_options(sparsityLevel = 0,
+                         printLevel = 0,
+                         terminationTolerance=1.0e-10
+                         )                            
+                            
 #Set options
-opts = BlockSQPOptions(opttol=1e-12)
+opts = blockSQPOptions(opt_tol = 1e-12,
+                       feas_tol = 1e-12,
+                       enable_linesearch = false,
+                       hess_approx = 2,
+                       lim_mem = true,
+                       mem_size = 20,
+                       sizing = 0,
+                       fallback_approx = 2,
+                       fallback_sizing = 0,
+                       sparse = false,
+                       print_level = 2,
+                       qpsol = "qpOASES"
+                       #qpsol_options = QPopts
+                       )
 
 stats = blockSQP.SQPstats("./")
+
 meth = blockSQP.Solver(prob, opts, stats)
 blockSQP.init!(meth)
 
@@ -37,13 +59,3 @@ x_opt = blockSQP.get_primal_solution(meth)
 lam_opt = blockSQP.get_dual_solution(meth)
 
 print("Primal solution\n", x_opt, "\nDual solution\n", lam_opt, "\n")
-
-
-rosenbrock(x, p) = (p[1] - x[1])^2 + p[2] * (x[2] - x[1]^2)^2
-x0 = zeros(2)
-
-cons(res, x, p) = (res .= [x[1]^2 + x[2]^2, x[1] * x[2]])
-optprob_wcons = OptimizationFunction(rosenbrock, Optimization.AutoForwardDiff(), cons = cons)
-prob_wcons = OptimizationProblem(optprob_wcons, x0, ones(2), lcons = [-Inf, -1.0], ucons = [0.8, 2.0])
-sol = solve(prob_wcons, BlockSQPOpt())
-sol.original.multiplier

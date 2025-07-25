@@ -2,19 +2,43 @@ module blockSQP
     using SparseArrays, Symbolics
 
 	import Base.setproperty!, Base.getproperty
-
-	using CxxWrap
-    using SparseArrays, Symbolics
-    using blockSQP_mumps_jll
-
-	@readmodule(()->libblockSQP_MUMPS_wrapper)
-	@wraptypes
-	@wrapfunctions
-
-	function __init__()
-		@initcxx
-	end
-
+    
+    #See Julia documentation of Indirect Calls
+    macro dlsym(lib, func)
+        z = Ref{Ptr{Cvoid}}(C_NULL)
+        quote
+            let zlocal = $z[]
+                if zlocal == C_NULL
+                    zlocal = Base.Libc.Libdl.dlsym($(esc(lib))::Ptr{Cvoid}, $(esc(func)))::Ptr{Cvoid}
+                    $z[] = zlocal
+                end
+                zlocal
+            end
+        end
+    end
+    
+    const hasjll::Bool =
+        try
+            import blockSQP_jll
+            true
+        catch
+            false
+        end
+        
+    const libblockSQP = Ref{Ptr{Nothing}}(Ptr{Nothing}())
+    function __init__()
+        libblockSQP[] = try
+            Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP_jl"))
+        catch
+            @info "Could not load blockSQP dynamic library from bin folder, loading blockSQP_jll instead\n"
+            if !hasjll
+                error("Nether local blockSQP dynamic library nor blockSQP_jll are available")
+            end
+            Base.Libc.Libdl.dlopen(blockSQP_jll.libblockSQP)
+        end
+    end
+    
+    
 	function fnothing(args...)
 	end
 
