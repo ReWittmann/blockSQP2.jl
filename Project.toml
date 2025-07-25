@@ -7,8 +7,6 @@ version = "0.1.0"
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-blockSQP_mumps_jll = "2986b7fc-76ad-5884-9cb8-8e9b7a0d44b4"
-qpOASES_mumps_jll = "ea7176bd-ec22-57e2-b9c1-d49449e64f03"
 
 [weakdeps]
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
