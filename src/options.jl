@@ -227,7 +227,7 @@ function create_cxx_options(opts::blockSQPOptions)
         ccall(@dlsym(BSQP, "qpOASES_options_set_sparsityLevel"), Cvoid, (Ptr{Cvoid}, Cint), QPsolver_options_obj, Cint(opts.qpsol_options.sparsityLevel))
         ccall(@dlsym(BSQP, "qpOASES_options_set_printLevel"), Cvoid, (Ptr{Cvoid}, Cint), QPsolver_options_obj, Cint(opts.qpsol_options.printLevel))
         ccall(@dlsym(BSQP, "qpOASES_options_set_terminationTolerance"), Cvoid, (Ptr{Cvoid}, Cdouble), QPsolver_options_obj, Cdouble(opts.qpsol_options.terminationTolerance))
-        ccall(@dlsym(BSQP, "SQPoptions_set_qpsol"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), SQPoptions_obj, QPsolver_options_obj)
+        ccall(@dlsym(BSQP, "SQPoptions_set_qpsol_options"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), SQPoptions_obj, QPsolver_options_obj)
     # elseif typeof(opts.qpsol_options) == ...
     end
     
