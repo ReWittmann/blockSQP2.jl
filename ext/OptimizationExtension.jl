@@ -2,6 +2,7 @@ module OptimizationExtension
 
 using blockSQP, blockSQP.SparseArrays
 using Optimization, Optimization.SciMLBase
+using Symbolics
 using Pkg
 
 SciMLBase.allowsbounds(::BlockSQPOpt) = true
@@ -141,7 +142,12 @@ function SciMLBase.__solve(
     
     jac_g_row, jac_g_col, nnz, jac_row, jac_col = begin
         if use_sparse_functions
-            J_sparse = sparse(_jac_cons(cache.u0))
+            #🤗 clean code
+            #😏 dirty code 🪳
+            u0_pert_1 = [x + 1e-6*rand() for x in cache.u0]
+            u0_pert_2 = [x + 1e-5*rand() for x in cache.u0]
+            u0_pert_3 = [x + 1e-4*rand() for x in cache.u0]
+            J_sparse = sparse(_jac_cons(cache.u0) + _jac_cons(u0_pert_1) + _jac_cons(u0_pert_2) + _jac_cons(u0_pert_3))
             jac_row, jac_col, jac_val = findnz(J_sparse)
             J_sparse.rowval .- 1, J_sparse.colptr .- 1, length(jac_val), jac_row, jac_col
         else

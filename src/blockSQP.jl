@@ -1,6 +1,6 @@
 module blockSQP
     using SparseArrays, Symbolics
-
+    
 	import Base.setproperty!, Base.getproperty
     
     #See Julia documentation of Indirect Calls
