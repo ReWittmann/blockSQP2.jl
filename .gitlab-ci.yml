@@ -3,6 +3,7 @@ test:
   script:
     - |
       julia --project=@. --heap-size-hint=1.5G -e '
+        include("install_deps.jl")
         using Pkg
         Pkg.build()
         Pkg.test(coverage=true)'

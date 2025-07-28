@@ -1,9 +1,11 @@
 module blockSQP
 	import Base.setproperty!, Base.getproperty
-
-	using CxxWrap
+    using CxxWrap
     using SparseArrays, Symbolics
     using blockSQP_mumps_jll
+    if Sys.iswindows()
+        using MKL
+    end
 
 	@readmodule(()->libblockSQP_MUMPS_wrapper)
 	@wraptypes
