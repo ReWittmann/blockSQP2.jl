@@ -6,6 +6,8 @@ CMakeCache.txt
 *.a
 *.lib
 *.dll
+!bin/*.so
+!bin/*.dll
 *.exp
 *.pyd
 *.pdb
