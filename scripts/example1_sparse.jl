@@ -42,8 +42,8 @@ opts = blockSQPOptions(
                        opt_tol = 1.0e-12,
                        feas_tol = 1.0e-12,
                        enable_linesearch = false,
-                       hess_approx = 1,
-                       fallback_approx = 2,
+                       hess_approx = :SR1,
+                       fallback_approx = :BFGS,
                        print_level = 2,
                        indef_delay = 1
 )

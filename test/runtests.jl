@@ -73,7 +73,7 @@ using LinearAlgebra
         prob = OptimizationProblem(optprob_wcons, [10.0, 10.0], Float64[], lcons = [0.0], ucons = [0.0])
         sol_sparse_1 = solve(prob, BlockSQPOpt(); sparsity=true)
         sol_sparse_2 = solve(prob, BlockSQPOpt(); sparsity=[0,1,2])
-        options = blockSQPOptions(sparse=true, hess_approx=1)
+        options = blockSQPOptions(sparse=true, hess_approx=:SR1)
         sol_sparse_3 = solve(prob, BlockSQPOpt(); options=options)
         @test SciMLBase.successful_retcode(sol_sparse_1) && SciMLBase.successful_retcode(sol_sparse_2) &&
                 SciMLBase.successful_retcode(sol_sparse_3)

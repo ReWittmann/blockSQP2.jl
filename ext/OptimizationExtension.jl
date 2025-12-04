@@ -85,7 +85,7 @@ function __map_optimizer_args!(cache::OptimizationCache,
     end
 
     if length(sparsity) > 2
-        opt.hess_approx = 1
+        opt.hess_approx = :SR1
         opt.sparse = true
     end
 
