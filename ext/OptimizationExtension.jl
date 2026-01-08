@@ -3,7 +3,6 @@ module OptimizationExtension
 using blockSQP, blockSQP.SparseArrays
 using Optimization, Optimization.SciMLBase
 using Symbolics
-using Pkg
 
 SciMLBase.allowsbounds(::BlockSQPOpt) = true
 SciMLBase.allowsconstraints(::BlockSQPOpt) = true
@@ -13,7 +12,8 @@ SciMLBase.requiresconsjac(::BlockSQPOpt) = true
 SciMLBase.supports_opt_cache_interface(opt::BlockSQPOpt) = true
 
 @info "Loading Optimization.jl extension for blockSQP..."
-
+print("allowsconstraints is ", SciMLBase.allowsconstraints(BlockSQPOpt()), "\n")
+print("allowsconstraints is ", allowsconstraints(BlockSQPOpt()), "\n")
 function SciMLBase.__init(
             prob::SciMLBase.OptimizationProblem, opt::BlockSQPOpt,
             ;
