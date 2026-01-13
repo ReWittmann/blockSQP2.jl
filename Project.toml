@@ -4,6 +4,7 @@ authors = ["Christoph Plate <christoph.plate@ovgu.de>", "Reinhold Wittmann <rein
 version = "0.1.0"
 
 [deps]
+NLPstructures = "adaf1311-06bf-4f71-ac93-2ddf680bb7ce"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
@@ -16,13 +17,13 @@ ComponentArraysExtension = "ComponentArrays"
 OptimizationExtension = "Optimization"
 
 [compat]
-ComponentArrays = "0.15"
-ForwardDiff = "0.10"
-Ipopt = "1.10"
+ComponentArrays = ">= 0.15"
+ForwardDiff = ">= 0.10"
+Ipopt = ">= 1.10"
 Optimization = "~3.19.0, 4"
-OptimizationMOI = "0.5"
-SparseArrays = "1.10"
-Symbolics = "6.38"
+OptimizationMOI = ">= 0.5"
+SparseArrays = ">= 1.10"
+Symbolics = ">= 6.38"
 Test = "1"
 julia = "1.6 - 1.11"
 

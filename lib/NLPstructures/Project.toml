@@ -1,0 +1,8 @@
+name = "NLPstructures"
+uuid = "adaf1311-06bf-4f71-ac93-2ddf680bb7ce"
+authors = ["Reinhold Wittmann", "Sebastian Sager"]
+
+[deps]
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"

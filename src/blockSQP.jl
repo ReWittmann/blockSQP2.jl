@@ -1,5 +1,5 @@
 module blockSQP
-    using SparseArrays, Symbolics
+    using SparseArrays, Symbolics, NLPstructures
     
 	import Base.setproperty!, Base.getproperty
     
@@ -78,5 +78,6 @@ module blockSQP
 
     include("solver.jl")
     
+    include("NLPstructure_conversion.jl")
 
 end # module blockSQP
