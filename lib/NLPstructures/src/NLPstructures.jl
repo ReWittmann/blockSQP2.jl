@@ -63,7 +63,7 @@ export NLPstructure, tagmap
 include("LayoutUtils.jl")
 export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, axsubindex, axsubkeys,
        simple_vBlocks, simple_cBlocks, hessBlocks, hessBlockSizes, hessBlockIndex, 
-       has_parent, parent_of, has_parent_type
+       has_parent, parent_of, has_parent_type, get_BlockDescriptors
 
 
 include("MultipleShootingSystemSC.jl")

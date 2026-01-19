@@ -70,6 +70,19 @@ function to_Axis(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, 
 end
 
 
+function get_BlockDescriptors(arg::T) where {T <: Union{Integer, UnitRange}}
+    return BlockDescriptor[]
+end
+
+function get_BlockDescriptors(arg::Tuple{B, T}) where {B <: AbstractBlockDescriptor, T <: Union{Union{Integer,AbstractVector}, Integer, AbstractVector}}
+    return vcat([first(arg)], get_BlockDescriptors(last(arg)))
+end
+
+function get_BlockDescriptors(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T <: Union{Union{Integer,AbstractVector}, Integer, AbstractVector}}
+    return arg .|> get_BlockDescriptors |> splat(vcat)
+end
+
+
 function Base.getindex(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
     return :parent in keys(ind.attr) ? collection[ind.attr[:parent]][ind.tag] : collection[ind.tag]
 end
