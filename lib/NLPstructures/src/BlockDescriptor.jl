@@ -10,23 +10,23 @@ abstract type Hess <: Variables end
 abstract type Matching <: Constraints end
 
 """
-Wrapper type for constructor selection
+Wrapper type for inner constructor selection
 """
 abstract type Btype{T <: Block} <: Block end
 
 mutable struct BlockDescriptor{T <: Block} <: AbstractBlockDescriptor
     tag::Symbol
     flags::Tuple
-    attr::NamedTuple
-    function BlockDescriptor{arg_T}(args...; tag = gensym(), kwargs...) where arg_T <: Block
+    attr::NamedTuple    
+    function BlockDescriptor{arg_bT}(args...; tag = gensym(), kwargs...) where arg_bT <: Btype{arg_T} where arg_T
         new{arg_T}(tag, (args...,), (; kwargs...))
-    end
+    end 
 end
 
-BlockDescriptor(args...; kwargs...) = BlockDescriptor{Block}(args...; kwargs...)
+BlockDescriptor(args...; kwargs...) = BlockDescriptor{Btype{Block}}(args...; kwargs...)
 
-function BlockDescriptor{arg_BT}(args...; kwargs...) where arg_BT <: Btype{arg_T} where arg_T <: Block
-    return BlockDescriptor{arg_T}(args...; kwargs...)
+function BlockDescriptor{arg_T}(args...; kwargs...) where arg_T <: Block
+    return BlockDescriptor{Btype{arg_T}}(args...; kwargs...)
 end
 
 function blocktypeof(::BlockDescriptor{T}) where T

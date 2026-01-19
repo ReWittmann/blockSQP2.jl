@@ -15,17 +15,13 @@ abstract type MultipleShootingSystemSC <: Variables end
 abstract type MultipleShootingMatchings <: Constraints end
 
 
-function BlockDescriptor{arg_BT}(args...; kwargs...) where arg_BT <: Btype{arg_T} where arg_T <: MultipleShootingSystemSC
+function BlockDescriptor{arg_T}(args...; kwargs...) where arg_T <: MultipleShootingSystemSC
     @assert :matchings in keys(kwargs)
-    return BlockDescriptor{MultipleShootingSystemSC}(args...; kwargs...)
+    return BlockDescriptor{Btype{MultipleShootingSystemSC}}(args...; kwargs...)
 end
 
 
-function check_layout(block::BlockDescriptor{B}, struc::NLPstructure) where B <: Block 
-    return nothing
-end
-
-function check_layout(BD::BlockDescriptor{B}, struc::NLPstructure) where B <: MultipleShootingSystemSC
+function assert_layout(BD::BlockDescriptor{B}, struc::NLPstructure) where B <: MultipleShootingSystemSC
     MP = tagmap(struc)
     axsubBD(AX, ind) = let __MP = MP
         axsubkeys(AX, ind) .|> x->__MP[x]
@@ -54,10 +50,8 @@ function check_layout(BD::BlockDescriptor{B}, struc::NLPstructure) where B <: Mu
         subtags = axsubkeys(struc.vLayout, Hchildren[i])
         if !(length(subtags) == 2)
             error("Every Hessian block of a MultipleShootingSystemSC after the first must have exactly two subblocks")
-        end
-        
-        if !(length(axsubrange(struc.vLayout, MP[first(subtags)])) == length(axsubrange(struc.cLayout, Mchildren[i-1])))
-            error("Number of constraints of a matching no matching number of associated dependent variables")
+        elseif !(length(axsubrange(struc.vLayout, MP[first(subtags)])) == length(axsubrange(struc.cLayout, Mchildren[i-1])))
+            error("Output dimension of matching $(i-1) does not match size of associated dependent variable block (block $i)")
         end
     end
     return nothing

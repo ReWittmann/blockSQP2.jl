@@ -8,16 +8,13 @@ export BlockDescriptor, blocktypeof
 
 export Btype
 
-nlpBlock, nlpVariables, nlpConstraints, nlpHess, nlpMatching = (Btype{T} for T in (Block, Variables, Constraints, Hess, Matching))
+nlpBlock, nlpVariables, nlpConstraints, nlpHess, nlpMatching = Block, Variables, Constraints, Hess, Matching
 export nlpBlock, nlpVariables, nlpConstraints, nlpHess, nlpMatching
 
-# _Block, _Variables, _Constraints, _Hess, _Matching = Block, Variables, Constraints, Hess, Matching
-# export _Block, _Variables, _Constraints, _Hess, _Matching
 
 #Note: The AbstractVector should be of type AbstractVector{TupleBD{S}}
 TupleBD{S} = Tuple{BlockDescriptor, Union{AbstractVector, S}} where {S <: Integer}
 export TupleBD
-
 
 """
 $(TYPEDEF)
@@ -37,7 +34,20 @@ struct NLPstructure{VB, VL <: ComponentArrays.AbstractAxis, CB, CL <: ComponentA
     cBlocks::CB
     "See vLayout"
     cLayout::CL
+    
+    function NLPstructure(vB::VB, vL::VL, cB::CB, cL::CL) where {VB, VL <: ComponentArrays.AbstractAxis, CB, CL <: ComponentArrays.AbstractAxis}
+        struc = new{VB, VL, CB, CL}(vB, vL, cB, cL)
+        for vBlock in struc.vBlocks
+            assert_layout(vBlock, struc)
+        end
+        return struc
+    end
 end
+
+function assert_layout(block::BlockDescriptor{B}, struc::NLPstructure) where B <: Block 
+    return nothing
+end
+
 
 tagmap(S::NLPstructure) = Dict((BD.tag => BD) for BD in union(S.vBlocks, S.cBlocks))
 
@@ -58,11 +68,8 @@ export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, a
 
 include("MultipleShootingSystemSC.jl")
 
-nlpMultipleShootingSystemSC, nlpMultipleShootingMatchings = Btype{MultipleShootingSystemSC}, Btype{MultipleShootingMatchings}
+nlpMultipleShootingSystemSC, nlpMultipleShootingMatchings = MultipleShootingSystemSC, MultipleShootingMatchings
 export nlpMultipleShootingSystemSC, nlpMultipleShootingMatchings
-
-# _MultipleShootingSystemSC, _MultipleShootingMatchings = MultipleShootingSystemSC, MultipleShootingMatchings
-# export _MultipleShootingSystemSC, _MultipleShootingMatchings
 
 
 end #module
