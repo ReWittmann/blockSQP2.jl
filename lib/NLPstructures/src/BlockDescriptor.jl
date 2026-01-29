@@ -17,10 +17,10 @@ abstract type Btype{T <: Block} <: Block end
 mutable struct BlockDescriptor{T <: Block} <: AbstractBlockDescriptor
     tag::Symbol
     flags::Tuple
-    attr::NamedTuple    
+    attr::NamedTuple
     function BlockDescriptor{arg_bT}(args...; tag = gensym(), kwargs...) where arg_bT <: Btype{arg_T} where arg_T
         new{arg_T}(tag, (args...,), (; kwargs...))
-    end 
+    end
 end
 
 BlockDescriptor(args...; kwargs...) = BlockDescriptor{Btype{Block}}(args...; kwargs...)

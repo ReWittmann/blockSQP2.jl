@@ -29,31 +29,23 @@ function assert_layout(BD::BlockDescriptor{B}, struc::NLPstructure) where B <: M
     
     #a) Direct subblocks must be Hessian blocks
     Hchildren = axsubBD(struc.vLayout, BD)
-    if !all(isa.(blocktypeof.(Hchildren), Type{Hess}))
-        error("All direct sub-BlockDescriptors of a MultipleShootingSystemSC must have BlockType \"Hess\"")
-    end
+    @assert all(isa.(blocktypeof.(Hchildren), Type{Hess})) "All direct sub-BlockDescriptors of a MultipleShootingSystemSC must have BlockType \"Hess\""
     
     #b) One matching block for each shooting stage
     MTC = BD.attr[:matchings]
     Mchildren = axsubBD(struc.cLayout, MTC)
-    if !(length(Mchildren) == length(Hchildren) - 1)
-        error("Number matching conditions does not match Hessian block structure")
-    end
+    @assert (length(Mchildren) == length(Hchildren) - 1) "Number matching conditions does not match Hessian block structure"
     
     #c) First Hessian block only has one control C subblock
-    if !(length(axsubkeys(struc.vLayout, first(Hchildren))) == 1)
-        error("First Hessian block of a MultipleShootingSystemSC must have exactly one subblock")
+    @assert (length(axsubkeys(struc.vLayout, first(Hchildren))) == 1) "First Hessian block of a MultipleShootingSystemSC must have exactly one subblock"
+    
+    #d) Hessian blocks except the first and the last must have one control/parameter C subblock and one state S subblock
+    for i in eachindex(Hchildren)[2:end-1]
+        subtags = axsubkeys(struc.vLayout, Hchildren[i])
+        @assert length(subtags) == 2 "Every Hessian block of a MultipleShootingSystemSC except the first and last must have exactly two subblocks"
+        @assert (length(axsubrange(struc.vLayout, MP[first(subtags)])) == length(axsubrange(struc.cLayout, Mchildren[i-1]))) "Output dimension of matching $(i-1) does not match size of associated dependent variable block (block $i)"
     end
     
-    #d) Hessian blocks after the first have one control C subblock and one state S subblock
-    for i in Iterators.drop(eachindex(Hchildren), 1)
-        subtags = axsubkeys(struc.vLayout, Hchildren[i])
-        if !(length(subtags) == 2)
-            error("Every Hessian block of a MultipleShootingSystemSC after the first must have exactly two subblocks")
-        elseif !(length(axsubrange(struc.vLayout, MP[first(subtags)])) == length(axsubrange(struc.cLayout, Mchildren[i-1])))
-            error("Output dimension of matching $(i-1) does not match size of associated dependent variable block (block $i)")
-        end
-    end
     return nothing
 end
 

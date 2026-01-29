@@ -42,31 +42,28 @@ function RK4_M(rhs, quad, x0, u, DT = 1.0, M = 2)
     return x, q
 end
 
-function ODEsol_multi(rhs, quad, _nq, xk::AbstractArray{DTP}, uk::AbstractArray{DTP}, T = 12.0, M = 2) where DTP <: Number
+function ODEsol_multi(rhs, quad, xk::AbstractArray{DTP}, uk::AbstractArray{DTP}, T = 12.0, M = 2) where DTP <: Number
     _N_stages = size(xk, 2)
-    _nx = size(xk, 1)
-    
-    Fxk = Vector{DTP}[]
-    qk = Vector{DTP}[]
     
     DT = T/_N_stages
-    # Threads.@threads 
-    TMP = map(1:_N_stages) do i
-        RK4_M(rhs, quad, xk[:,i], uk[:,i], DT, M)
+    # TMP = map(1:_N_stages) do i
+    #     RK4_M(rhs, quad, xk[:,i], uk[:,i], DT, M)
+    # end
+    
+    TMP = Vector{Tuple{Vector{DTP}, Vector{DTP}}}(undef, _N_stages)
+    Threads.@threads for i in 1:_N_stages
+        TMP[i] = RK4_M(rhs, quad, xk[:,i], uk[:,i], DT, M)
     end
     
-    Fxk = (fx for (fx, _) in TMP)
-    qk = (q for (_, q) in TMP)
-    
-    q_out = sum(qk)
-    x_out = reduce(hcat, Fxk)
+    q_out = sum(last.(TMP))
+    x_out = reduce(hcat, first.(TMP))
     return x_out, q_out
 end
 
-function ODEsol_single(rhs, quad, _nq, x0::AbstractArray{DTP}, u::AbstractArray{DTP}, T = 12.0, M = 2, arg_N = 100) where DTP <: Number
+function ODEsol_single(rhs, quad, x0::AbstractArray{DTP}, u::AbstractArray{DTP}, T = 12.0, M = 2, arg_N = 100) where DTP <: Number
     DT = T/arg_N
-    traj = Vector{DTP}[]
-    Q = zeros(_nq)
+    traj = Vector{DTP}[x0]
+    Q = zeros(quad(x0,u))
     xk = x0
     for i = 1:arg_N
         xk, q = RK4_M(rhs, quad, xk, u[:,i], DT, M)
@@ -136,7 +133,7 @@ NLPstruc = NLPstructure((vBlockD...,), vLayout, (cBlockD...,), cLayout)
 nVar = axlength(vLayout)
 
 
-lotka_MS(x,u) = ODEsol_multi(lotka_rhs, lotka_quad, 1, x, u, lotka_params[:t1] - lotka_params[:t0], 2)
+lotka_MS(x,u) = ODEsol_multi(lotka_rhs, lotka_quad, x, u, lotka_params[:t1] - lotka_params[:t0], 2)
 
 
 stateidx = splat(vcat)(states .|> st->collect(axsubrange(vLayout, st)))
@@ -187,6 +184,7 @@ f = objective
 g = shooting_constraints
 grad_f = x->ForwardDiff.gradient(f, x)
 
+
 using SparseConnectivityTracer
 using SparseMatrixColorings
 using DifferentiationInterface
@@ -198,15 +196,36 @@ sparse_forward_backend = AutoSparse(
     coloring_algorithm = GreedyColoringAlgorithm()
 )
 
+
+using Optimization
+using OptimizationMOI
+using Ipopt
+
+Opt_objective(u, ::Any) = objective(u)
+Opt_cons(res, u, ::Any) = (res[:] .= shooting_constraints(u))
+
+Opt_f = OptimizationFunction(
+    Opt_objective, AutoForwardDiff(); cons = Opt_cons
+)
+Opt_prob = OptimizationProblem(
+    Opt_f, collect(x_start), SciMLBase.NullParameters(); lb = collect(lb_var), ub = collect(ub_var), lcons = lb_con, ucons = ub_con
+)
+
+print("Note: We are using dense Jacobians for Ipopt, so the runtime comparison will be off.\n")
+Ipoptsol = solve(Opt_prob, Ipopt.Optimizer(),
+     tol = 1e-6,
+     hessian_approximation = "limited-memory",
+     max_iter = 300, # 165
+)
+
+
 jac_g0 = jacobian(g, sparse_forward_backend, x_start)
 ROW = jac_g0.rowval .-1
 COLIND = jac_g0.colptr .-1
 
-
 jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 
-
-
+("BlockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
 prob = blockSQP.blockSQPProblem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
@@ -215,7 +234,7 @@ prob = blockSQP.blockSQPProblem(
     nnz = length(ROW), vblocks = blockSQP.create_vBlocks(NLPstruc)
 )
 opts = blockSQP.sparse_options()
-opts.max_extra_steps = 2
+opts.max_extra_steps = 0
 opts.automatic_scaling = true
 opts.max_conv_QPs = 4
 opts.conv_strategy = 2
@@ -245,7 +264,7 @@ stairs!(Tgrid[1:end-1], opt_u[1,:], label = "u", color = :red3)
 fig[1, 2] = Legend(fig, ax, framevisible = false)
 display(fig)
 
-_ = nothing #Any better way to prevent the Julia REPL from printing the last return value?
+_ = nothing #Any better way to prevent the Julia REPL from printing the last returned value?
 
 
 

@@ -168,7 +168,7 @@ function create_cxx_options(opts::blockSQPOptions)
     # Termination criteria
     ccall(@dlsym(BSQP, "SQPoptions_set_opt_tol"), Cvoid, (Ptr{Cvoid}, Cdouble), SQPoptions_obj, Cdouble(opts.opt_tol))
     ccall(@dlsym(BSQP, "SQPoptions_set_feas_tol"), Cvoid, (Ptr{Cvoid}, Cdouble), SQPoptions_obj, Cdouble(opts.feas_tol))
-    ccall(@dlsym(BSQP, "SQPoptions_set_enable_premature_termination"), Cvoid, (Ptr{Cvoid}, Cchar), SQPoptions_obj, Cchar(opts.automatic_scaling))
+    ccall(@dlsym(BSQP, "SQPoptions_set_enable_premature_termination"), Cvoid, (Ptr{Cvoid}, Cchar), SQPoptions_obj, Cchar(opts.enable_premature_termination))
     ccall(@dlsym(BSQP, "SQPoptions_set_max_extra_steps"), Cvoid, (Ptr{Cvoid}, Cint), SQPoptions_obj, Cint(opts.max_extra_steps))
     
     # Line search heuristics

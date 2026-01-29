@@ -44,17 +44,14 @@ struct NLPstructure{VB, VL <: ComponentArrays.AbstractAxis, CB, CL <: ComponentA
     end
 end
 
-function assert_layout(block::BlockDescriptor{B}, struc::NLPstructure) where B <: Block 
+# Methods should provide sanity checks for certain block types, 
+# e.g. correct structure of a MultipleShootingSystemSC
+function assert_layout(::BlockDescriptor{B}, ::NLPstructure) where B <: Block 
     return nothing
 end
 
 
 tagmap(S::NLPstructure) = Dict((BD.tag => BD) for BD in union(S.vBlocks, S.cBlocks))
-
-#Provide sanity checks for certain block types, e.g. MultipleShootingSystemSC
-function is_valid(block::BlockDescriptor{B}, struc::NLPstructure) where B <: Block
-    return true
-end
 
 
 export NLPstructure, tagmap

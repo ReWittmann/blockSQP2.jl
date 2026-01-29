@@ -162,12 +162,3 @@ end
 function hessBlockOneBasedIndex(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
     return cumsum(Int64[1, hessBlockSizes(NLPstruc)...])
 end
-
-# function hessblockindex(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-#     return NLPstruc.vBlocks |> Base.Fix1(filter, x->blocktypeof(x) == Hess) .|> Base.Fix1(getindex, NLPstruc.vLayout) .|> Base.Fix2(getfield, :idx) |> collect |> sort! |> (arr -> Int64[0, (length(x) for x in arr)...]) |> cumsum
-# end
-
-# function hessblockindex(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: AbstractVector, CB, CL}
-#     ax = to_Axis(NLPstruc.vLayout)
-#     return NLPstruc.vBlocks |> Base.Fix1(filter, x->blocktypeof(x) == Hess) .|> Base.Fix1(getindex, ax) .|> Base.Fix2(getfield, :idx) |> collect |> sort! .|> length |> Base.Fix1(append!, [0]) |> cumsum
-# end

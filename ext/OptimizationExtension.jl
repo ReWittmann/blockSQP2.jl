@@ -146,7 +146,7 @@ function SciMLBase.__solve(
     
     jac_g_row, jac_g_col, nnz, jac_row, jac_col = begin
         if use_sparse_functions
-            #Hacky: Calculate constraint jacobian for perturbed points to find structural nonzero elements
+            #Hacky: Calculate constraint Jacobian for perturbed points to find structural nonzero elements
             u0_pert_1 = [x + 1e-6*rand() for x in cache.u0]
             u0_pert_2 = [x + 1e-5*rand() for x in cache.u0]
             u0_pert_3 = [x + 1e-4*rand() for x in cache.u0]
