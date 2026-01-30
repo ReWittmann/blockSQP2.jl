@@ -7,3 +7,13 @@ version = "0.1.0"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+
+[weakdeps]
+LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
+Corleone = "2751e0db-33e9-4374-b36d-b7219e1e6b40"
+
+[extensions]
+NLPstructuresCorleone = ["Corleone", "LuxCore"]
+
+[compat]
+LuxCore = "1.5.3"

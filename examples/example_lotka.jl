@@ -86,7 +86,7 @@ cLayoutPre = TupleBD[]
 states = BlockDescriptor[]
 controls = BlockDescriptor[]
 
-matchings = BlockDescriptor{nlpMultipleShootingMatchings}(tag = :matchings)
+matchings = BlockDescriptor{nlpStateMatchings}(tag = :matchings)
 MSsys = BlockDescriptor{nlpMultipleShootingSystemSC}(matchings = matchings, tag = :MSsys)
 
 h0 = BlockDescriptor{nlpHess}(parent = MSsys, tag = :h₀)
@@ -214,6 +214,7 @@ Opt_prob = OptimizationProblem(
 print("Note: We are using dense Jacobians for Ipopt, so the runtime comparison will be off.\n")
 Ipoptsol = solve(Opt_prob, Ipopt.Optimizer(),
      tol = 1e-6,
+     constr_viol_tol = 1e-6,
      hessian_approximation = "limited-memory",
      max_iter = 300, # 165
 )

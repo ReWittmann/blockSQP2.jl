@@ -10,7 +10,6 @@ function create_condenser_args(struc::NLPstructure, add_dep_bounds = :all) #:non
         return nothing
     end
     
-    (@assert(:matchings in keys(DT.attr)) for DT in Dtargets)
     Dmatchings = [DT.attr[:matchings] for DT in Dtargets]
     
     Dcblocks = simple_cBlocks(struc)

@@ -6,17 +6,24 @@
 """
 abstract type MultipleShootingSystemSC <: Variables end
 
+
+abstract type StateMatching <: Matching end
+abstract type ParameterMatching <: Matching end
+abstract type ControlMatching <: Matching end
+
 """
     System of NLP constraints that denotes a collection of
-    matching constraints for a MultipleShootingSystemSC.
+    state matching conditions for a MultipleShootingSystemSC.
     It must have one child for each shooting stage that is
     a matching for the dependent variables of that stage.
 """
-abstract type MultipleShootingMatchings <: Constraints end
+abstract type StateMatchings <: Matchings end
+abstract type ParameterMatchings <: Matchings end
+abstract type ControlMatchings <: Matchings end
 
 
 function BlockDescriptor{arg_T}(args...; kwargs...) where arg_T <: MultipleShootingSystemSC
-    @assert :matchings in keys(kwargs)
+    @assert :matchings in keys(kwargs) && blocktypeof(kwargs[:matchings]) == StateMatchings
     return BlockDescriptor{Btype{MultipleShootingSystemSC}}(args...; kwargs...)
 end
 
@@ -42,7 +49,7 @@ function assert_layout(BD::BlockDescriptor{B}, struc::NLPstructure) where B <: M
     #d) Hessian blocks except the first and the last must have one control/parameter C subblock and one state S subblock
     for i in eachindex(Hchildren)[2:end-1]
         subtags = axsubkeys(struc.vLayout, Hchildren[i])
-        @assert length(subtags) == 2 "Every Hessian block of a MultipleShootingSystemSC except the first and last must have exactly two subblocks"
+        @assert length(subtags) == 2 "Every Hessian block of a MultipleShootingSystemSC except the first and last must have exactly two subblocks (free section and dependent section)"
         @assert (length(axsubrange(struc.vLayout, MP[first(subtags)])) == length(axsubrange(struc.cLayout, Mchildren[i-1]))) "Output dimension of matching $(i-1) does not match size of associated dependent variable block (block $i)"
     end
     

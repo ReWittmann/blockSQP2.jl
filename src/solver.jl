@@ -1,3 +1,15 @@
+# Holder for C++ side SQPstats object
+mutable struct __SQPstats
+    obj::Ptr{Cvoid}
+    function __SQPstats(arg_obj::Ptr{Cvoid})
+        newobj = new(arg_obj)
+        function __SQPstats_finalizer!(arg_stats::__SQPstats)
+            BSQP = libblockSQP[]
+            ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_stats.obj)
+        end
+        finalizer(__SQPstats_finalizer!, newobj)
+    end
+end
 
 function SQPstats(outpath::String)
     BSQP = libblockSQP[]
@@ -5,11 +17,11 @@ function SQPstats(outpath::String)
     if !all(Ctrans .<= 0x7f)
         error("SQPstats outpath may not contain non-ASCII characters")
     end
-    return ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans)))
+    return __SQPstats(ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans))))
 end
 
 
-@enum SQPresult::Cint begin
+@enumx SQPresult::Cint begin
     it_finished = Cint(0)
     partial_success = Cint(1)
     success = Cint(2)
@@ -22,8 +34,8 @@ end
     misc_error = Cint(-10)
 end
 
-function is_success(ret::SQPresult)
-    return ret == partial_success || ret == success || ret == super_success
+function is_success(ret::SQPresult.T)
+    return ret == SQPresult.partial_success || ret == SQPresult.success || ret == SQPresult.super_success
 end
 
 mutable struct Solver
@@ -38,7 +50,9 @@ mutable struct Solver
     Jul_Problem::blockSQPProblem
     Options::blockSQPOptions
     
-    #The Solver struct will take ownership of the passed SQPstats. The recommended way to call is Solver(*, *, SQPstats("PATH/TO/SOMETHING"))
+    Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, stats::__SQPstats) = 
+        Solver(J_prob, opts, stats.obj)
+    
     Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, SQPstats_obj_pass::Ptr{Cvoid}) = begin        
         BSQP = libblockSQP[]
         new_Problemspec_obj = ccall(@dlsym(BSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
@@ -125,14 +139,14 @@ mutable struct Solver
         end
         
         sol = new(new_SQPmethod_obj, new_Problemspec_obj, new_SQPoptions_obj, new_QPsolver_options_obj, SQPstats_obj_pass, J_prob, opts)
-        function Solver_finalizer(arg_sol::Solver)
+        function Solver_finalizer!(arg_sol::Solver)
             ccall(@dlsym(BSQP, "delete_SQPmethod"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPmethod_obj)
-            ccall(@dlsym(BSQP, "delete_Problemspec"), Cvoid, (Ptr{Cvoid},), arg_sol.Problemspec_obj)
-            ccall(@dlsym(BSQP, "delete_SQPoptions"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPoptions_obj)
+            ccall(@dlsym(BSQP, "delete_SQPoptions"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPoptions_obj)           
             ccall(@dlsym(BSQP, "delete_QPsolver_options"), Cvoid, (Ptr{Cvoid},), arg_sol.QPsolver_options_obj)
-            ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPstats_obj)
+            # ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPstats_obj)
+            ccall(@dlsym(BSQP, "delete_Problemspec"), Cvoid, (Ptr{Cvoid},), arg_sol.Problemspec_obj)
         end
-        finalizer(Solver_finalizer, sol)
+        finalizer(Solver_finalizer!, sol)
     end
 end
 
@@ -148,7 +162,7 @@ function run!(sol::Solver, maxIt::Integer, warmStart::Integer)
     if ret == -1000 #Code for raised exception
         error(unsafe_string(ccall(@dlsym(BSQP, "get_error_message"), Ptr{Cchar}, ())))
     end
-    return SQPresult(ret)    
+    return SQPresult.T(ret)    
 end
 
 function finish!(sol::Solver)

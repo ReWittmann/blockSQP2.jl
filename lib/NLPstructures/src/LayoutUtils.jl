@@ -21,8 +21,6 @@ function to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Vector{S} = [1]) where {
 end
 
 
-
-
 function to_ComponentArray(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}}
     return arg |> to_NamedTuple |> ComponentArray
 end
@@ -83,47 +81,49 @@ function get_BlockDescriptors(arg::Vector{Tuple{B, T}}) where {B <: AbstractBloc
 end
 
 
+# function pad(preVL::Vector{TBD}, btype::Type{BT}, length::Int64, start::Int64 = 1) where {BT <: Block, TBD}
+#     VLsize = length(to_ComponentArray(preVL))
+#     leftL = left > 0 ? ((BlockDescriptor{btype}(), left),) : ()
+#     right = length - (left + VLsize)
+#     rightL = right > 0 ? ((BlockDescriptor{btype}(), right),) : ()
+#     return TBD[leftL..., preVL, rightL...]
+# end
+
+
+    
 function Base.getindex(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
-    return :parent in keys(ind.attr) ? collection[ind.attr[:parent]][ind.tag] : collection[ind.tag]
+    return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
 end
 function Base.getindex(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
-    return :parent in keys(ind.attr) ? collection[ind.attr[:parent]][ind.tag] : collection[ind.tag]
+    return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
 end
 
 function Base.getindex(ax::AX, ind::B) where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
-    return :parent in keys(ind.attr) ? ax[ind.attr[:parent]].ax[ind.tag] : ax[ind.tag]
+    return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
 end
 function Base.getindex(ax::AX, @nospecialize(ind::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
-    return :parent in keys(ind.attr) ? ax[ind.attr[:parent]].ax[ind.tag] : ax[ind.tag]
+    return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
 end
 
 function axsubrange(ax::AX, ind::B)  where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
-    return :parent in keys(ind.attr) ? axsubrange(ax, ind.attr[:parent])[ax[ind].idx] : ax[ind].idx
+    return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
 end
 function axsubrange(ax::AX, @nospecialize(ind::BlockDescriptor))  where {AX <: ComponentArrays.AbstractAxis}
-    return :parent in keys(ind.attr) ? axsubrange(ax, ind.attr[:parent])[ax[ind].idx] : ax[ind].idx
+    return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
 end
 
 
 function Base.view(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
-    return :parent in keys(ind.attr) ? view(view(collection, ind.attr[:parent]), ind.tag) : view(collection, ind.tag)
+    return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
 end
 function Base.view(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
-    return :parent in keys(ind.attr) ? view(view(collection, ind.attr[:parent]), ind.tag) : view(collection, ind.tag)
+    return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
 end
 
 
 function axsubkeys(ax::AX, @nospecialize(ind::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
     return ax[ind].ax |> keys |> collect
 end
-
-# function hessblockindex(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-#     arr = ComponentArray(1:axlength(NLPstruc.vLayout), NLPstruc.vLayout)
-#     return NLPstruc.vBlocks |> Base.Fix1(filter, x->blocktypeof(x) == Hess) .|> Base.Fix1(getindex, arr) .|> (x->x[:]) |> collect |> sort! .|> length |> Base.Fix1(append!, [0]) |> cumsum
-# end
-# function hessblockindex(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-#     return NLPstruc.vBlocks |> Base.Fix1(filter, x->blocktypeof(x) == Hess) .|> Base.Fix1(getindex, NLPstruc.vLayout) .|> Base.Fix2(getfield, :idx) |> collect |> sort! .|> length |> Base.Fix1(append!, [0]) |> cumsum
-# end
 
 
 """Extract \"simple\" variable blocks, i.e. blocks that have no subblocks"""
@@ -138,14 +138,14 @@ end
 
 
 function has_parent(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor))
-    return :parent in keys(b.attr) && (b.attr[:parent] == p || has_parent(b.attr[:parent], p))
+    return !isnothing(b.parent) && (b.parent == p || has_parent(b.parent, p))
 end
 
 function has_parent_type(@nospecialize(b::BlockDescriptor), TP::Type{T}) where T <: Block
-    return :parent in keys(b.attr) && (blocktypeof(b.attr[:parent]) isa Type{T} || has_parent_type(b.attr[:parent], TP))
+    return !isnothing(ind.parent) && (blocktypeof(ind.parent) isa Type{T} || has_parent_type(ind.parent, TP))
 end
 
-parent_of(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor)) = :parent in keys(b.attr) && b.attr[:parent] == p
+parent_of(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor)) = !isnothing(b.parent) && b.parent == p
 
 function hessBlocks(NLPstruc::NLPstructure{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
     return NLPstruc.vBlocks |> Base.Fix1(filter, x-> (blocktypeof(x) <: Hess)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(NLPstruc.vLayout, x)))))

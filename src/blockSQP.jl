@@ -1,5 +1,5 @@
 module blockSQP
-    using SparseArrays, Symbolics, NLPstructures
+    using EnumX, SparseArrays, Symbolics, NLPstructures
     
 	import Base.setproperty!, Base.getproperty
     
