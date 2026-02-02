@@ -1,5 +1,5 @@
 module blockSQP
-    using EnumX, SparseArrays, Symbolics, NLPstructures
+    using EnumX, SparseArrays, Symbolics
     
 	import Base.setproperty!, Base.getproperty
     
@@ -78,6 +78,9 @@ module blockSQP
 
     include("solver.jl")
     
-    include("structure.jl")
-
+    include("NLPstructures/NLPstructures.jl")
+    
+    include("structures.jl")
+    export create_vBlocks, create_condenser_args, create_condenser
+    
 end # module blockSQP

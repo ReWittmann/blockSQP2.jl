@@ -4,26 +4,30 @@ authors = ["Christoph Plate <christoph.plate@ovgu.de>", "Reinhold Wittmann <rein
 version = "0.1.0"
 
 [deps]
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
-NLPstructures = "adaf1311-06bf-4f71-ac93-2ddf680bb7ce"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [weakdeps]
-ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
-
-[sources]
-NLPstructures = {path = "lib/NLPstructures"}
+LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
+Corleone = "2751e0db-33e9-4374-b36d-b7219e1e6b40"
 
 [extensions]
 ComponentArraysExtension = "ComponentArrays"
 OptimizationExtension = "Optimization"
+NLPstructuresCorleone = ["LuxCore", "Corleone"]
 
 [compat]
 ComponentArrays = ">= 0.15"
+DocStringExtensions = "0.9.5"
 EnumX = "1.0.6"
+LuxCore = "1.5.3"
 Optimization = "~3.19.0, 4"
+Reexport = "1.2.2"
 SparseArrays = ">= 1.10"
 Symbolics = ">= 6.38"
 Test = "1"

@@ -1,28 +1,28 @@
 using blockSQP
-using NLPstructures
+using blockSQP.NLPstructures
 
 
-matchings = BlockDescriptor{nlpMultipleShootingMatchings}(tag = :matchings)
-MSsys = BlockDescriptor{nlpMultipleShootingSystemSC}(tag = :MSsys, matchings = matchings)
+matchings = BlockDescriptor{msMatchings}(tag = :matchings)
+MSsys = BlockDescriptor{msSystemSC}(tag = :MSsys, matchings = matchings)
 
 h0 = BlockDescriptor{nlpHess}(tag = :h0, parent = MSsys)
 h1 = BlockDescriptor{nlpHess}(tag = :h1, parent = MSsys)
 h2 = BlockDescriptor{nlpHess}(tag = :h2, parent = MSsys)
 h3 = BlockDescriptor{nlpHess}(tag = :h3, parent = MSsys)
 
-u0 = BlockDescriptor{nlpVariables}(:control, parent = h0, tag = :u0)
+u0 = BlockDescriptor{msFree}(:control, parent = h0, tag = :u0)
 
-m1 = BlockDescriptor{nlpMatching}(input = [u0], tag = :m1, parent = matchings)
-x1 = BlockDescriptor{nlpVariables}(:dstate, matching = [m1], parent = h1, tag = :x1)
-u1 = BlockDescriptor{nlpVariables}(:control, parent = h1, tag = :u1)
+m1 = BlockDescriptor{msMatching}(input = [u0], tag = :m1, parent = matchings)
+x1 = BlockDescriptor{msDependent}(:dstate, parent = h1, matching = [m1], tag = :x1)
+u1 = BlockDescriptor{msFree}(:control, parent = h1, tag = :u1)
 
-m2 = BlockDescriptor{nlpMatching}(input = [u1, x1], tag = :m2, parent = matchings)
-x2 = BlockDescriptor{nlpVariables}(:dstate, matching = [m2], parent = h2, tag = :x2)
-u2 = BlockDescriptor{nlpVariables}(:control, parent = h2, tag = :u2)
+m2 = BlockDescriptor{msMatching}(input = [u1, x1], tag = :m2, parent = matchings)
+x2 = BlockDescriptor{msDependent}(:dstate, matching = [m2], parent = h2, tag = :x2)
+u2 = BlockDescriptor{msFree}(:control, parent = h2, tag = :u2)
 
-m3 = BlockDescriptor{nlpMatching}(input = [u2, x2], tag = :m3, parent = matchings)
-x3 = BlockDescriptor{nlpVariables}(:dstate, matching = [m3], parent = h3, tag = :x3)
-u3 = BlockDescriptor{nlpVariables}(:control, parent = h3, tag = :u3)
+m3 = BlockDescriptor{msMatching}(input = [u2, x2], tag = :m3, parent = matchings)
+x3 = BlockDescriptor{msDependent}(:dstate, matching = [m3], parent = h3, tag = :x3)
+u3 = BlockDescriptor{msFree}(:control, parent = h3, tag = :u3)
 
 constr = BlockDescriptor{nlpConstraints}(tag = :constr)
 
@@ -60,7 +60,7 @@ ub_var = Float64[0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
 lb_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, -1.9]
 ub_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.9]
 
-
+using blockSQP
 condenser = blockSQP.create_condenser(NLPlayout)
 
 H = zeros(10,10)
