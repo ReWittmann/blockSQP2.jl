@@ -12,13 +12,15 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [weakdeps]
-Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
-LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
 Corleone = "2751e0db-33e9-4374-b36d-b7219e1e6b40"
+CorleoneOED = "6590a4b1-d036-41fe-a5b4-03a980244101"
+LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
 
 [extensions]
-OptimizationExtension = "Optimization"
 NLPstructuresCorleone = ["LuxCore", "Corleone"]
+NLPstructuresCorleoneOED = ["LuxCore", "Corleone", "CorleoneOED"]
+OptimizationExtension = "Optimization"
 
 [compat]
 ComponentArrays = ">= 0.15"

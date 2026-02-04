@@ -74,7 +74,7 @@ end
 """
 function extract_NLPstructure(args...; kwargs...)
     prevLayout, precLayout = extract_preLayouts(args...; kwargs...)
-    return NLPlayout((get_BlockDescriptors(prevLayout)...,), 
+    return NLPstructure((get_BlockDescriptors(prevLayout)...,), 
                      to_Axis(prevLayout), 
                      (get_BlockDescriptors(precLayout)...,), 
                      to_Axis(precLayout))

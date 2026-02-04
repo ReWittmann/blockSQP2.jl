@@ -102,16 +102,16 @@ push!(cLayoutPre, (c1, nx))
 hk, uk, ck = h0, u0, c1
 xk = BlockDescriptor()
 for i = 1:(N-1)
-    hk = BlockDescriptor{nlpHess}(parent = MSsys, tag = Symbol(:h, _subscript(i)))
-    xk = BlockDescriptor{nlpMSdependent}(parent = hk, matching = ck, tag = Symbol(:x, _subscript(i)))
-    uk = BlockDescriptor{nlpMSfree}(parent = hk, tag = Symbol(:u, _subscript(i)))
+    global hk = BlockDescriptor{nlpHess}(parent = MSsys, tag = Symbol(:h, _subscript(i)))
+    global xk = BlockDescriptor{nlpMSdependent}(parent = hk, matching = ck, tag = Symbol(:x, _subscript(i)))
+    global uk = BlockDescriptor{nlpMSfree}(parent = hk, tag = Symbol(:u, _subscript(i)))
     
     push!(vLayoutPre, (hk, [(xk, nx), (uk, nu)]))
     
     push!(states, xk)
     push!(controls, uk)
     
-    ck = BlockDescriptor{nlpMatching}(parent = matchings, input = [xk, uk], tag = Symbol(:m, _subscript(i+1)))
+    global ck = BlockDescriptor{nlpMatching}(parent = matchings, input = [xk, uk], tag = Symbol(:m, _subscript(i+1)))
     push!(cLayoutPre, (ck, nx))
 end
 
@@ -227,13 +227,15 @@ COLIND = jac_g0.colptr .-1
 
 jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 
+BSQPcond = blockSQP.create_condenser(NLPstruc)
+
 ("BlockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
 prob = blockSQP.blockSQPProblem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(NLPstructures.axlength(vLayout) + NLPstructures.axlength(cLayout));
     blockIdx = hessBlockZeroBasedIndex(NLPstruc), jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
-    nnz = length(ROW), vblocks = blockSQP.create_vBlocks(NLPstruc)
+    nnz = length(ROW), vblocks = blockSQP.create_vBlocks(NLPstruc), cond = BSQPcond
 )
 opts = blockSQP.sparse_options()
 opts.max_extra_steps = 0

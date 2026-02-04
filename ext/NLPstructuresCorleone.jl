@@ -1,12 +1,27 @@
 module NLPstructuresCorleone
-using Corleone
 using LuxCore
+using Corleone
 using blockSQP.NLPstructures
 
 @info "Loading Corleone.jl extension for blockSQP.NLPstructures..." 
 
 #Prefixes: s - states, p - paramters, c - controls
-#Suffixes: B - BlockDescriptor, L - Layout (::TupleBD[]), SUB - Sublayout (::TupleBD) 
+#Suffixes: B - BlockDescriptor, L - Layout (::TupleBD[]), SUB - Sublayout (::TupleBD)
+function NLPstructures.extract_preLayouts(shooting::SingleShootingLayer,
+                    ps=LuxCore.initialparameters(Random.default_rng(), shooting),
+                    st=LuxCore.initialstates(Random.default_rng(), shooting);
+                    name = Symbol(gensym(), :_SingleShooting))
+    # shootingSystemB = BlockDescriptor{nlpVariables}(tag = name)
+    hessB = BlockDescriptor{nlpHess}(tag = Symbol(name, "_hess"))#, parent = shootingSystemB)        
+        statesB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_states"), parent = hessB)
+        paramB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_param"), parent = hessB)
+        controlB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_control"), parent = hessB)
+    
+    statesparamcontrolL = TupleBD[(statesB, length(ps[:u0])), (paramB, length(ps[:p])), (controlB, length(ps[:controls]))]
+    return TupleBD[(hessB, statesparamcontrolL)], TupleBD[]
+end
+
+
 function NLPstructures.extract_preLayouts(shooting::MultipleShootingLayer,
                     ps=LuxCore.initialparameters(Random.default_rng(), shooting),
                     st=LuxCore.initialstates(Random.default_rng(), shooting);
@@ -74,36 +89,6 @@ function NLPstructures.extract_preLayouts(shooting::MultipleShootingLayer,
     
     return shootingSystemL, matchingsL
 end
-
-
-# function NLPstructures.extract_NLPstructure(
-#     shooting::MultipleShootingLayer,
-#     ps=LuxCore.initialparameters(Random.default_rng(), shooting),
-#     st=LuxCore.initialstates(Random.default_rng(), shooting);
-#     name = Symbol(gensym(), :_shooting)
-# )
-#     prevLayout, precLayout = preLayout(shooting, ps, st, name)
-#     return NLPlayout((get_BlockDescriptors(prevLayout)...,), 
-#                      to_Axis(prevLayout), 
-#                      (get_BlockDescriptors(precLayout)...,), 
-#                      to_Axis(precLayout))
-# end
-
-function NLPstructures.extract_preLayouts(shooting::SingleShootingLayer,
-                    ps=LuxCore.initialparameters(Random.default_rng(), shooting),
-                    st=LuxCore.initialstates(Random.default_rng(), shooting);
-                    name = Symbol(gensym(), :_SingleShooting))
-    shootingSystemB = BlockDescriptor{nlpVariables}(tag = name)
-    hessB = BlockDescriptor{nlpHess}(tag = Symbol(name, "_hess"), parent = shootingSystemB)        
-        statesB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_states"), parent = hessB)
-        paramB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_param"), parent = hessB)
-        controlB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_control"), parent = hessB)
-    
-    statesparamcontrolL = TupleBD[(statesB, length(ps[:u0])), (paramB, length(ps[:p])), (controlB, length(ps[:controls]))]
-    return TupleBD[(shootingSystemB, statesparamcontrolL)], TupleBD[]
-end
-
-NLPstructures.extract_preLayouts(OED::OEDlayer, ps, st)
 
 
 
