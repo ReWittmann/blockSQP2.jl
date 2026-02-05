@@ -142,6 +142,8 @@ mutable struct Condenser
     end
 end
 
+Condenser(::Nothing) = nothing
+
 function print_info(J_cond::Condenser)
     BSQP = libblockSQP[]
     ccall(@dlsym(BSQP, "Condenser_print_info"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
@@ -152,7 +154,7 @@ function condensed_nBlocks(J_cond::Condenser)
     return ccall(@dlsym(BSQP, "Condenser_condensed_nBlocks"), Cint, (Ptr{Cvoid},), J_cond.Condenser_obj)
 end
 
-
+#TODO: Use SparseMatrixCSC from SparseArrays instead
 mutable struct Sparse_Matrix
     m::Int32
     n::Int32

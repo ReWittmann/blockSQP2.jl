@@ -6,7 +6,6 @@ using DocStringExtensions
 include("BlockDescriptor.jl")
 export BlockDescriptor, blocktypeof
 
-export Btype
 
 """Export the given names with a prefix, 
 e.g. > @prefixexport pref SomeType
@@ -33,25 +32,17 @@ end
 TupleBD{S} = Tuple{BlockDescriptor, Union{AbstractVector, S}} where {S <: Integer}
 export TupleBD
 
-
-include("NLPstructure.jl")
-
-export NLPstructure, tagmap
-
+include("NLPlayout.jl")
+export NLPlayout, tagmap
 
 include("LayoutUtils.jl")
 export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, axsubindex, axsubkeys,
-       simple_vBlocks, simple_cBlocks, hessBlocks, hessBlockSizes, hessBlockZeroBasedIndex, hessBlockOneBasedIndex,
-       has_parent, parent_of, has_parent_type, get_BlockDescriptors, tagmap, subBlocks
+       simple_vBlocks, simple_cBlocks, hessBlocks, hessBlockSizes, hessBlockIndexZeroBased, hessBlockIndexOneBased,
+       has_parent, parent_of, has_parent_type, blockDescriptors, tagmap, subBlocks
 
 
 include("MultipleShootingDF.jl")
-
 @nlpexport MultipleShootingDF MSfree MSdependent
-# export msSystemSC, msFree, msDependent, msMatching, msMatchings
-# @nlpexport StateMatching ParameterMatching ControlMatching
-# @nlpexport StateMatchings ParameterMatchings ControlMatchings
-# @nlpexport MultipleShootingSystemSC
 
 """
     Extract structure information from objects of a modeling framework, 
@@ -60,7 +51,7 @@ include("MultipleShootingDF.jl")
     This function requires extensions to add methods for specific frameworks.
     As these are highly specific, see the specific extension for required inputs.
 """
-function extract_preLayouts()
+function get_preLayouts()
     error("No extension method available to extract layout information from the given objects")
 end
 
@@ -72,15 +63,15 @@ end
     is available from the passed arguments and does not need to be modified 
     afterwards.
 """
-function extract_NLPstructure(args...; kwargs...)
+function get_Layout(args...; kwargs...)
     prevLayout, precLayout = extract_preLayouts(args...; kwargs...)
-    return NLPstructure((get_BlockDescriptors(prevLayout)...,), 
+    return NLPlayout((get_BlockDescriptors(prevLayout)...,), 
                      to_Axis(prevLayout), 
                      (get_BlockDescriptors(precLayout)...,), 
                      to_Axis(precLayout))
 end
 
-# export extract_preLayouts, extract_nlpLayout
+export get_preLayouts, get_Layout
 
 
 end #module

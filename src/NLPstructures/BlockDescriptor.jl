@@ -21,10 +21,6 @@ abstract type Matching <: Constraints end
 that is made up of several Matching blocks"""
 abstract type Matchings <: Constraints end
 
-# """BlockDescriptor type for describing a section of variables
-# subject to matching conditions
-# """
-# abstract type Dependent <: Variables end
 
 """
 Wrapper type for inner BlockDescriptor constructor selection
@@ -60,14 +56,11 @@ function BlockDescriptor{arg_T}(args...; kwargs...) where arg_T <: Matching
     return BlockDescriptor{Btype{arg_T}}(args...; kwargs...)
 end
 
-
-function blocktypeof(::BlockDescriptor{T}) where T
-    return T
-end
+blocktypeof(::BlockDescriptor{T}) where T = T
+addtag(@nospecialize(blk::BlockDescriptor), _tag::Symbol) = (blk.tags = (blk.tags...,_tag);)
 
 
 _tags(arg::AbstractVector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T} = arg .|> first .|> Base.Fix2(getfield, :tag)
-
 
 function Base.show(io::IO, ::MIME"text/plain", B::BlockDescriptor{T}) where T <: Block
     _taketag(B::TB) where TB = B

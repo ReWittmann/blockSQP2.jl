@@ -7,12 +7,11 @@ using blockSQP.NLPstructures
 
 #Prefixes: s - states, p - paramters, c - controls
 #Suffixes: B - BlockDescriptor, L - Layout (::TupleBD[]), SUB - Sublayout (::TupleBD)
-function NLPstructures.extract_preLayouts(shooting::SingleShootingLayer,
+function NLPstructures.get_preLayouts(shooting::SingleShootingLayer,
                     ps=LuxCore.initialparameters(Random.default_rng(), shooting),
                     st=LuxCore.initialstates(Random.default_rng(), shooting);
                     name = Symbol(gensym(), :_SingleShooting))
-    # shootingSystemB = BlockDescriptor{nlpVariables}(tag = name)
-    hessB = BlockDescriptor{nlpHess}(tag = Symbol(name, "_hess"))#, parent = shootingSystemB)        
+    hessB = BlockDescriptor{nlpHess}(tag = Symbol(name, "_hess"))      
         statesB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_states"), parent = hessB)
         paramB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_param"), parent = hessB)
         controlB = BlockDescriptor{nlpVariables}(tag = Symbol(name, "_control"), parent = hessB)
@@ -22,7 +21,7 @@ function NLPstructures.extract_preLayouts(shooting::SingleShootingLayer,
 end
 
 
-function NLPstructures.extract_preLayouts(shooting::MultipleShootingLayer,
+function NLPstructures.get_preLayouts(shooting::MultipleShootingLayer,
                     ps=LuxCore.initialparameters(Random.default_rng(), shooting),
                     st=LuxCore.initialstates(Random.default_rng(), shooting);
                     name = Symbol(gensym(), :_MultipleShooting))

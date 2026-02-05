@@ -21,7 +21,7 @@ function SQPstats(outpath::String)
 end
 
 
-@enumx SQPresult::Cint begin
+@enumx SQPresults::Cint begin
     it_finished = Cint(0)
     partial_success = Cint(1)
     success = Cint(2)
@@ -34,8 +34,8 @@ end
     misc_error = Cint(-10)
 end
 
-function is_success(ret::SQPresult.T)
-    return ret == SQPresult.partial_success || ret == SQPresult.success || ret == SQPresult.super_success
+function is_success(ret::SQPresults.T)
+    return ret == SQPresults.partial_success || ret == SQPresults.success || ret == SQPresults.super_success
 end
 
 mutable struct Solver
@@ -44,16 +44,13 @@ mutable struct Solver
     Problemspec_obj::Ptr{Cvoid}
     SQPoptions_obj::Ptr{Cvoid}
     QPsolver_options_obj::Ptr{Cvoid}
-    SQPstats_obj::Ptr{Cvoid}
     
     #Julia side objects
     Jul_Problem::blockSQPProblem
-    Options::blockSQPOptions
+    Jul_Opts::blockSQPOptions
+    Jul_Stats::__SQPstats
     
-    Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, stats::__SQPstats) = 
-        Solver(J_prob, opts, stats.obj)
-    
-    Solver(J_prob::blockSQPProblem, opts::blockSQPOptions, SQPstats_obj_pass::Ptr{Cvoid}) = begin        
+    Solver(J_prob::blockSQPProblem, J_opts::blockSQPOptions, J_stats::__SQPstats) = begin        
         BSQP = libblockSQP[]
         new_Problemspec_obj = ccall(@dlsym(BSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
         
@@ -130,20 +127,19 @@ mutable struct Solver
         end
         
         #Create blockSQP and QPsolver options classes on the C++ side
-        new_SQPoptions_obj, new_QPsolver_options_obj = create_cxx_options(opts)
+        new_SQPoptions_obj, new_QPsolver_options_obj = create_cxx_options(J_opts)
         
         #Create method class on the C++ side. Return nullpointer if an exception is thrown, in which case an error message will be available
-        new_SQPmethod_obj = ccall(@dlsym(BSQP, "create_SQPmethod"), Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, new_SQPoptions_obj, SQPstats_obj_pass)
+        new_SQPmethod_obj = ccall(@dlsym(BSQP, "create_SQPmethod"), Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, new_SQPoptions_obj, J_stats.obj)
         if new_SQPmethod_obj == C_NULL
             error(unsafe_string(ccall(@dlsym(BSQP, "get_error_message"), Ptr{Cchar}, ())))
         end
         
-        sol = new(new_SQPmethod_obj, new_Problemspec_obj, new_SQPoptions_obj, new_QPsolver_options_obj, SQPstats_obj_pass, J_prob, opts)
+        sol = new(new_SQPmethod_obj, new_Problemspec_obj, new_SQPoptions_obj, new_QPsolver_options_obj, J_prob, J_opts, J_stats)
         function Solver_finalizer!(arg_sol::Solver)
             ccall(@dlsym(BSQP, "delete_SQPmethod"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPmethod_obj)
             ccall(@dlsym(BSQP, "delete_SQPoptions"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPoptions_obj)           
             ccall(@dlsym(BSQP, "delete_QPsolver_options"), Cvoid, (Ptr{Cvoid},), arg_sol.QPsolver_options_obj)
-            # ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_sol.SQPstats_obj)
             ccall(@dlsym(BSQP, "delete_Problemspec"), Cvoid, (Ptr{Cvoid},), arg_sol.Problemspec_obj)
         end
         finalizer(Solver_finalizer!, sol)
@@ -162,7 +158,7 @@ function run!(sol::Solver, maxIt::Integer, warmStart::Integer)
     if ret == -1000 #Code for raised exception
         error(unsafe_string(ccall(@dlsym(BSQP, "get_error_message"), Ptr{Cchar}, ())))
     end
-    return SQPresult.T(ret)    
+    return SQPresults.T(ret)    
 end
 
 function finish!(sol::Solver)

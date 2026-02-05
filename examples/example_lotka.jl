@@ -45,12 +45,7 @@ end
 
 function ODEsol_multi(rhs, quad, xk::AbstractArray{DTP}, uk::AbstractArray{DTP}, T = 12.0, M = 2) where DTP <: Number
     _N_stages = size(xk, 2)
-    
     DT = T/_N_stages
-    # TMP = map(1:_N_stages) do i
-    #     RK4_M(rhs, quad, xk[:,i], uk[:,i], DT, M)
-    # end
-    
     TMP = Vector{Tuple{Vector{DTP}, Vector{DTP}}}(undef, _N_stages)
     Threads.@threads for i in 1:_N_stages
         TMP[i] = RK4_M(rhs, quad, xk[:,i], uk[:,i], DT, M)
@@ -74,15 +69,14 @@ function ODEsol_single(rhs, quad, x0::AbstractArray{DTP}, u::AbstractArray{DTP},
     return reduce(hcat, traj), Q
 end
 
-
 N = 100
 nx = 2
 nu = 1
 nq = 1
 _subscript(i::Integer) = (i |> digits |> reverse .|> dgt->Char(0x2080+dgt)) |> join
 
-vLayoutPre = TupleBD[]
-cLayoutPre = TupleBD[]
+vPreLayout = TupleBD[]
+cPreLayout = TupleBD[]
 
 states = BlockDescriptor[]
 controls = BlockDescriptor[]
@@ -93,11 +87,11 @@ MSsys = BlockDescriptor{nlpMultipleShootingDF}(matchings = matchings, tag = :MSs
 h0 = BlockDescriptor{nlpHess}(parent = MSsys, tag = :h₀)
 u0 = BlockDescriptor{nlpMSfree}(parent = h0, tag = :u₀)
 
-push!(vLayoutPre, (h0, [(u0, nu)]))
+push!(vPreLayout, (h0, [(u0, nu)]))
 push!(controls, u0)
 
 c1 = BlockDescriptor{nlpMatching}(tag = :m₁, parent = matchings, input = [u0])
-push!(cLayoutPre, (c1, nx))
+push!(cPreLayout, (c1, nx))
 
 hk, uk, ck = h0, u0, c1
 xk = BlockDescriptor()
@@ -106,37 +100,32 @@ for i = 1:(N-1)
     global xk = BlockDescriptor{nlpMSdependent}(parent = hk, matching = ck, tag = Symbol(:x, _subscript(i)))
     global uk = BlockDescriptor{nlpMSfree}(parent = hk, tag = Symbol(:u, _subscript(i)))
     
-    push!(vLayoutPre, (hk, [(xk, nx), (uk, nu)]))
+    push!(vPreLayout, (hk, [(xk, nx), (uk, nu)]))
     
     push!(states, xk)
     push!(controls, uk)
     
     global ck = BlockDescriptor{nlpMatching}(parent = matchings, input = [xk, uk], tag = Symbol(:m, _subscript(i+1)))
-    push!(cLayoutPre, (ck, nx))
+    push!(cPreLayout, (ck, nx))
 end
 
 hN = BlockDescriptor{nlpHess}(parent = MSsys, tag = Symbol(:h, _subscript(N)))
 xN = BlockDescriptor{nlpMSdependent}(parent = hN, matching = ck, tag = Symbol(:x, _subscript(N)))
 uN = BlockDescriptor{nlpMSfree}(parent = hN, tag = Symbol(:u, _subscript(N)))
-push!(vLayoutPre, (hN, [(xN, nx), (uN, 0)]))
+push!(vPreLayout, (hN, [(xN, nx), (uN, 0)]))
 push!(states, xN)
 
-vLayoutPre = [(MSsys, vLayoutPre)]
-cLayoutPre = [(matchings, cLayoutPre)]
+vPreLayout = [(MSsys, vPreLayout)]
+cPreLayout = [(matchings, cPreLayout)]
 
-vLayout = to_Axis(vLayoutPre)
-cLayout = to_Axis(cLayoutPre)
-vBlockD = get_BlockDescriptors(vLayoutPre)
-cBlockD = get_BlockDescriptors(cLayoutPre)
+vLayout = to_Axis(vPreLayout)
+cLayout = to_Axis(cPreLayout)
+vBlocks = blockDescriptors(vPreLayout)
+cBlocks = blockDescriptors(cPreLayout)
 
-NLPstruc = NLPstructure((vBlockD...,), vLayout, (cBlockD...,), cLayout)
-
+NLPstruc = NLPlayout((vBlocks...,), vLayout, (cBlocks...,), cLayout)
 nVar = axlength(vLayout)
-
-
 lotka_MS(x,u) = ODEsol_multi(lotka_rhs, lotka_quad, x, u, lotka_params[:t1] - lotka_params[:t0], 2)
-
-
 stateidx = splat(vcat)(states .|> st->collect(axsubrange(vLayout, st)))
 controlidx = splat(vcat)(controls .|> ctrl->collect(axsubrange(vLayout, ctrl)))
 
@@ -227,15 +216,15 @@ COLIND = jac_g0.colptr .-1
 
 jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 
-BSQPcond = blockSQP.create_condenser(NLPstruc)
+BSQPcond = blockSQP.Condenser(NLPstruc)
 
 ("BlockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
 prob = blockSQP.blockSQPProblem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(NLPstructures.axlength(vLayout) + NLPstructures.axlength(cLayout));
-    blockIdx = hessBlockZeroBasedIndex(NLPstruc), jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
-    nnz = length(ROW), vblocks = blockSQP.create_vBlocks(NLPstruc), cond = BSQPcond
+    blockIdx = hessBlockIndexZeroBased(NLPstruc), jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
+    nnz = length(ROW), vblocks = blockSQP.create_vblocks(NLPstruc), cond = BSQPcond
 )
 opts = blockSQP.sparse_options()
 opts.max_extra_steps = 0
@@ -268,7 +257,6 @@ stairs!(Tgrid[1:end-1], opt_u[1,:], label = "u", color = :red3)
 fig[1, 2] = Legend(fig, ax, framevisible = false)
 display(fig)
 
-_ = nothing #Any better way to prevent the Julia REPL from printing the last returned value?
 
 
 

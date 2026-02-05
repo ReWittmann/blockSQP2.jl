@@ -1,5 +1,5 @@
 module blockSQP
-    using EnumX, SparseArrays, Symbolics
+    using EnumX, SparseArrays#, Symbolics
     
 	import Base.setproperty!, Base.getproperty
     
@@ -81,7 +81,7 @@ module blockSQP
     include("NLPstructures/NLPstructures.jl")
     
     include("structures.jl")
-    export create_vBlocks, create_condenser_args, create_condenser
+    export create_vblocks, create_condenser_args, create_condenser
     
     #ComponentArrays is used by NLPstructures submodule, so we always use ComponentArrays for now.
     include("ComponentArraysExtension.jl")

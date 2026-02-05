@@ -1,52 +1,48 @@
 using .NLPstructures
 
-# function create_vBlocks(struc::NLPstructure)
-#     Dtargets = filter(x->(blocktypeof(x) <: NLPstructures.MultipleShootingSystemSC), struc.vBlocks)
-#     return simple_vBlocks(struc) .|> x -> vblock(length(struc.vLayout[x]), :matching in keys(x.attr) && any(has_parent(x,T) for T in Dtargets))
-# end
-
-function create_vBlocks(struc::NLPstructure)
+"""
+Create vblocks (variable block information) for blockSQP, not to be confused with NLPlayout.vBlocks, NLPstructures.simple_vBlockes etc.
+"""
+function create_vblocks(struc::NLPlayout)
     return simple_vBlocks(struc) .|> x -> vblock(length(struc.vLayout[x]), has_parent_type(x, nlpMSdependent))
 end
 
-
-function create_condenser_args(struc::NLPstructure, add_dep_bounds = :all) #:none, :inactive, :all
+function create_condenser_args(struc::NLPlayout, add_dep_bounds = :all) #:none, :inactive, :all
     Dtargets = filter(x->(blocktypeof(x) <: nlpMultipleShootingDF), struc.vBlocks)
     if length(Dtargets) == 0
-        return nothing
+        return (nothing,)
     end
     
     Dmatchings = [DT.attr[:matchings] for DT in Dtargets]
     
-    Dcblocks = simple_cBlocks(struc)
-    Dvblocks = simple_vBlocks(struc)
-    Dhblocks = hessBlocks(struc)
+    cBlocks = simple_cBlocks(struc)
+    vBlocks = simple_vBlocks(struc)
+    hBlocks = hessBlocks(struc)
     
-    vblocks_args = [(size = length(struc.vLayout[x].idx), dependent = [false]) for x in Dvblocks]
+    vblocks_args = [(size = length(struc.vLayout[x].idx), dependent = [false]) for x in vBlocks]
     
-    cblocks = Dcblocks .|> x -> cblock(length(struc.cLayout[x].idx))
+    cblocks = cBlocks .|> x -> cblock(length(struc.cLayout[x].idx))
     
-    hsizes = Dhblocks .|> x-> length(struc.vLayout[x].idx)
+    hsizes = hBlocks .|> x-> length(struc.vLayout[x].idx)
     
     targets = condensing_target[]
     for DT in Dtargets
-        h0 = Dhblocks[findfirst(Base.Fix2(has_parent, DT), Dhblocks)]
+        h0 = hBlocks[findfirst(Base.Fix2(has_parent, DT), hBlocks)]
         
-        i0 = findfirst(Base.Fix2(has_parent,DT), Dvblocks)
-        i1 = findlast(Base.Fix2(has_parent,DT), Dvblocks)
+        i0 = findfirst(Base.Fix2(has_parent,DT), vBlocks)
+        i1 = findlast(Base.Fix2(has_parent,DT), vBlocks)
         for i in i0:i1
-            vblocks_args[i].dependent[1] = has_parent_type(Dvblocks[i], nlpMSdependent)
+            vblocks_args[i].dependent[1] = has_parent_type(vBlocks[i], nlpMSdependent)
         end
-        j0 = findfirst(Base.Fix2(has_parent, DT.attr[:matchings]), Dcblocks)
-        j1 = findlast(Base.Fix2(has_parent, DT.attr[:matchings]), Dcblocks)
-        N = count(Base.Fix2(has_parent, DT), Dhblocks) - 1
+        j0 = findfirst(Base.Fix2(has_parent, DT.attr[:matchings]), cBlocks)
+        j1 = findlast(Base.Fix2(has_parent, DT.attr[:matchings]), cBlocks)
+        N = count(Base.Fix2(has_parent, DT), hBlocks) - 1
         
         push!(targets, condensing_target(N, i0-1, i1, j0-1, j1)) 
     end
     
     vblocks = vblocks_args .|> x->blockSQP.vblock(x.size, x.dependent[1])
     return vblocks, cblocks, hsizes, targets, add_dep_bounds
-    # return Condenser(vblocks, cblocks, hsizes, targets, add_dep_bounds)
 end
 
-create_condenser(struc::NLPstructure, add_dep_bounds = :all) = Condenser(create_condenser_args(struc, add_dep_bounds)...)
+Condenser(struc::NLPlayout, add_dep_bounds = :all) = Condenser(create_condenser_args(struc, add_dep_bounds)...)
