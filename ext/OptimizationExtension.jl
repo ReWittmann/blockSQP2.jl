@@ -1,7 +1,7 @@
 module OptimizationExtension
 
 using blockSQP, blockSQP.SparseArrays
-using Optimization, Optimization.SciMLBase
+using OptimizationBase, OptimizationBase.SciMLBase
 using Symbolics
 
 SciMLBase.allowsbounds(::BlockSQPOpt) = true
@@ -9,14 +9,15 @@ SciMLBase.allowsconstraints(::BlockSQPOpt) = true
 SciMLBase.allowscallback(::BlockSQPOpt) = true
 SciMLBase.requiresgradient(::BlockSQPOpt) = true
 SciMLBase.requiresconsjac(::BlockSQPOpt) = true
-SciMLBase.supports_opt_cache_interface(opt::BlockSQPOpt) = true
+SciMLBase.supports_opt_cache_interface(::BlockSQPOpt) = true
+SciMLBase.has_init(::BlockSQPOpt) = true
 
-@info "Loading Optimization.jl extension for blockSQP..."
+@info "Loading Optimization(Base).jl extension for blockSQP..."
 
 function SciMLBase.__init(
             prob::SciMLBase.OptimizationProblem, opt::BlockSQPOpt,
             ;
-            callback = Optimization.DEFAULT_CALLBACK,
+            callback = OptimizationBase.DEFAULT_CALLBACK,
             progress = false, maxiters=nothing,
             options::blockSQPOptions=blockSQPOptions(),
             sparsity::Union{Vector{<:Integer}, Bool}=false, kwargs...
@@ -49,6 +50,7 @@ function SciMLBase.__init(
     return OptimizationCache(prob, opt; callback = callback, progress = progress,
         use_sparse_functions = use_sparse_functions, sparsity = blocks_hess, options=options,
         maxiters = maxiters, kwargs...)
+    return ret
 end
 
 function __map_optimizer_args!(cache::OptimizationCache,
@@ -93,13 +95,14 @@ end
 
 
 function SciMLBase.__solve(
-    cache::OptimizationCache{F,RC,LB,UB,LC,UC,S,O,D,P,C}
- ) where {F,RC,LB,UB,LC,UC,S,O <:BlockSQPOpt,D,P,C}
-    
+#     cache::OptimizationCache{F,RC,LB,UB,LC,UC,S,O,D,P,C}
+#  ) where {F,RC,LB,UB,LC,UC,S,O <:BlockSQPOpt,D,P,C}#{F,RC,LB,UB,LC,UC,S,O <:BlockSQPOpt,D,P,C}
+    cache::OptimizationCache{O,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
+ ) where {O<:BlockSQPOpt,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}#{F,RC,LB,UB,LC,UC,S,O <:BlockSQPOpt,D,P,C}
     local x
     
-    maxiters = Optimization._check_and_convert_maxiters(cache.solver_args.maxiters)
-    maxtime = Optimization._check_and_convert_maxtime(cache.solver_args.maxtime)
+    maxiters = OptimizationBase._check_and_convert_maxiters(cache.solver_args.maxiters)
+    maxtime = OptimizationBase._check_and_convert_maxtime(cache.solver_args.maxtime)
     num_cons = cache.ucons === nothing ? 0 : length(cache.ucons)
     num_x = length(cache.u0)
     T = eltype(cache.u0)
@@ -201,14 +204,14 @@ function SciMLBase.__solve(
     
     blockSQP.init!(meth)
     t0 = time()
-    if cache.callback == Optimization.DEFAULT_CALLBACK
+    if cache.callback == OptimizationBase.DEFAULT_CALLBACK
         ret = blockSQP.run!(meth, opts.maxiters, 1)
     else
         for i=1:opts.maxiters
             ret = blockSQP.run!(meth, 1, 1)
             _iterate = blockSQP.get_primal_solution(meth)
             _obj = _loss(_iterate)[1]
-            state = Optimization.OptimizationState(iter = i,
+            state = OptimizationBase.OptimizationState(iter = i,
                 u = _iterate,
                 objective = _obj[1])
             cret = cache.callback(state, _obj)
