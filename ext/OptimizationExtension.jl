@@ -4,59 +4,31 @@ using blockSQP, blockSQP.SparseArrays, blockSQP.NLPstructures
 using OptimizationBase, OptimizationBase.SciMLBase
 using Symbolics
 
-SciMLBase.allowsbounds(::BlockSQPOpt) = true
-SciMLBase.allowsconstraints(::BlockSQPOpt) = true
-SciMLBase.allowscallback(::BlockSQPOpt) = true
-SciMLBase.requiresgradient(::BlockSQPOpt) = true
-SciMLBase.requiresconsjac(::BlockSQPOpt) = true
-SciMLBase.supports_opt_cache_interface(::BlockSQPOpt) = true
-SciMLBase.has_init(::BlockSQPOpt) = true
+SciMLBase.allowsbounds(::blockSQPOptimizer) = true
+SciMLBase.allowsconstraints(::blockSQPOptimizer) = true
+SciMLBase.allowscallback(::blockSQPOptimizer) = true
+SciMLBase.requiresgradient(::blockSQPOptimizer) = true
+SciMLBase.requiresconsjac(::blockSQPOptimizer) = true
+SciMLBase.supports_opt_cache_interface(::blockSQPOptimizer) = true
+SciMLBase.has_init(::blockSQPOptimizer) = true
 
 @info "Loading Optimization(Base).jl extension for blockSQP..."
 
 function SciMLBase.__init(
-            prob::SciMLBase.OptimizationProblem, opt::BlockSQPOpt,
+            prob::SciMLBase.OptimizationProblem, opt::blockSQPOptimizer,
             ;
             callback = OptimizationBase.DEFAULT_CALLBACK,
             progress = false, maxiters=nothing,
             options::blockSQPOptions=blockSQPOptions(),
-            # sparsity::Union{Vector{<:Integer}, Bool}=false, 
             blockIdx::Union{Vector{<:Integer}, Nothing} = nothing,
             vblocks::Union{Vector{blockSQP.vblock}, Nothing} = nothing,
             layout::Union{NLPstructures.NLPlayout, Nothing} = nothing,
             kwargs...
             )
-    
-    # use_sparse_functions = sparsity != false || options.sparse
-    num_x = length(prob.u0)
-    num_cons = prob.ucons === nothing ? 0 : length(prob.ucons)
-    
-    
-    
-    # blocks_hess = begin
-    #     if use_sparse_functions
-    #         if isa(sparsity, Bool)
-    #             function cons_ip(cons,x)
-    #                 if (prob.f.cons !== nothing)
-    #                     prob.f.cons(cons, x, prob.p)
-    #                 end
-    #                 return cons
-    #             end
-    #             blockSQP.compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
-    #         else
-    #             @assert (sparsity[1] == 0) && (sparsity[end] == num_x) "sparsity[1] must be 0, sparsity[num_vars+1] must be num_vars"
-    #             sparsity
-    #         end
-    #     else
-    #         [0, num_x]
-    #     end
-    # end
-    
-    return OptimizationCache(prob, opt; callback = callback, progress = progress,
-        # use_sparse_functions = use_sparse_functions, 
-        sparsity = blocks_hess, options=options,
-        maxiters = maxiters, kwargs...)
-    return ret
+    return OptimizationCache(prob, opt; 
+        callback = callback, progress = progress, maxiters = maxiters,
+        options=options, blockIdx = blockIdx, vblocks = vblocks, layout = layout,
+        kwargs...)
 end
 
 function __map_optimizer_args!(cache::OptimizationCache,
@@ -66,7 +38,6 @@ function __map_optimizer_args!(cache::OptimizationCache,
     maxtime::Union{Number, Nothing} = nothing,
     abstol::Union{Number, Nothing} = nothing,
     reltol::Union{Number, Nothing} = nothing,
-    # sparsity::AbstractVector{Int},
     kwargs...)
 
     for j in kwargs
@@ -91,42 +62,30 @@ function __map_optimizer_args!(cache::OptimizationCache,
         opt.opt_tol = abstol
     end
 
-    # if length(sparsity) > 2
-    #     opt.hess_approx = :SR1
-    #     opt.sparse = true
-    # end
-
     return nothing
 end
 
 
 function SciMLBase.__solve(
     cache::OptimizationCache{O,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
- ) where {O<:BlockSQPOpt,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
+ ) where {O<:blockSQPOptimizer,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
     local x
     
     num_cons = cache.ucons === nothing ? 0 : length(cache.ucons)
     num_x = length(cache.u0)
     T = eltype(cache.u0)
     
-    
-    
     opts = cache.solver_args.options
     callback = cache.callback
     maxiters = OptimizationBase._check_and_convert_maxiters(cache.solver_args.maxiters)
     maxtime = OptimizationBase._check_and_convert_maxtime(cache.solver_args.maxtime)
     
-    __map_optimizer_args!(cache, opts, callback = callback,
+    __map_optimizer_args!(cache, opts; callback = callback,
                 maxiters = maxiters, maxtime = maxtime,
                 abstol = cache.solver_args.abstol, reltol = cache.solver_args.reltol,
-                # sparsity=sparsity
-                ; cache.solver_args...)
+                cache.solver_args...)
     
     
-    # use_sparse_functions = cache.solver_args.use_sparse_functions
-    # sparsity = cache.solver_args.sparsity
-    
-    # vBlocks = :vBlocks in keys(cache.solver_args) ? cache.solver_args[:vBlocks] : nothing
     _vblocks = blockSQP.vblock[]
     _blockIdx = Cint[0,num_x]
     _condenser = nothing

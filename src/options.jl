@@ -1,6 +1,6 @@
-abstract type QPsolver_options end
+abstract type QPsolverOptions end
 
-mutable struct blockSQPOptions
+mutable struct Options
     maxiters::Cint
     eps::Cdouble
     inf::Cdouble
@@ -34,7 +34,7 @@ mutable struct blockSQPOptions
     skip_first_linesearch::Cint
     max_SOC::Cint
     qpsol::Union{String, Symbol, Vector{Cchar}}
-    qpsol_options::Union{QPsolver_options, Nothing}
+    qpsol_options::Union{QPsolverOptions, Nothing}
     max_QP_it::Cint
     max_QP_secs::Cdouble
     max_extra_steps::Cint
@@ -44,7 +44,7 @@ mutable struct blockSQPOptions
     automatic_scaling::Bool
     enable_premature_termination::Bool
     indef_delay::Cint
-    function blockSQPOptions(;
+    function Options(;
         maxiters::Integer = 100,
         eps::AbstractFloat = 1.0e-16,
         inf::AbstractFloat = Inf,
@@ -78,7 +78,7 @@ mutable struct blockSQPOptions
         skip_first_linesearch::Bool = false,
         max_SOC::Integer = 3,
         qpsol::Union{String, Symbol, Vector{Cchar}} = "qpOASES",
-        qpsol_options::Union{QPsolver_options, Nothing} = nothing,
+        qpsol_options::Union{QPsolverOptions, Nothing} = nothing,
         max_QP_it::Integer = 5000,
         max_QP_secs::AbstractFloat = 3600.0,
         max_extra_steps::Integer = 0,
@@ -138,11 +138,11 @@ mutable struct blockSQPOptions
 end
 
 
-mutable struct qpOASES_options <: QPsolver_options
+mutable struct qpOASESoptions <: QPsolverOptions
     sparsityLevel::Cint
     printLevel::Cint
     terminationTolerance::Cdouble
-    function qpOASES_options(;
+    function qpOASESoptions(;
         sparsityLevel::Integer = 2,
         printLevel::Integer = 0,
         terminationTolerance::AbstractFloat = 5.0e6*2.221e-16
@@ -152,7 +152,7 @@ mutable struct qpOASES_options <: QPsolver_options
 end
 
 
-function create_cxx_options(opts::blockSQPOptions)
+function create_cxx_options(opts::Options)
     BSQP = libblockSQP[]
     SQPoptions_obj::Ptr{Cvoid} = ccall(@dlsym(BSQP, "create_SQPoptions"), Ptr{Cvoid}, ())
     QPsolver_options_obj::Ptr{Cvoid} = Ptr{Cvoid}()
@@ -243,7 +243,7 @@ function create_cxx_options(opts::blockSQPOptions)
     if (opts.qpsol == "qpOASES" || opts.qpsol == :qpOASES || opts.qpsol == Cchar['q', 'p', 'O', 'A', 'S', 'E', 'S', '\0'])
         ccall(@dlsym(BSQP, "SQPoptions_set_qpsol"), Cvoid, (Ptr{Cvoid}, Cint), SQPoptions_obj, Cint(0))
     end
-    if typeof(opts.qpsol_options) == qpOASES_options
+    if typeof(opts.qpsol_options) == qpOASESoptions
         QPsolver_options_obj = ccall(@dlsym(BSQP, "create_qpOASES_options"), Ptr{Cvoid}, ())
         ccall(@dlsym(BSQP, "qpOASES_options_set_sparsityLevel"), Cvoid, (Ptr{Cvoid}, Cint), QPsolver_options_obj, Cint(opts.qpsol_options.sparsityLevel))
         ccall(@dlsym(BSQP, "qpOASES_options_set_printLevel"), Cvoid, (Ptr{Cvoid}, Cint), QPsolver_options_obj, Cint(opts.qpsol_options.printLevel))
@@ -256,7 +256,7 @@ function create_cxx_options(opts::blockSQPOptions)
 end
 
 function sparse_options()
-    opts = blockSQPOptions()
+    opts = Options()
     opts.sparse = true
     opts.hess_approx = :SR1
     opts.sizing = :OL

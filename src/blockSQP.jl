@@ -51,8 +51,9 @@ module blockSQP
     """
     Struct to hold Optimization.jl solver.
     """
-    struct BlockSQPOpt end
-    export BlockSQPOpt
+    struct blockSQPOptimizer end
+    Optimizer() = blockSQPOptimizer()
+    export blockSQPOptimizer
     
     # Structs to hold structure data used for scaling and condensing
     struct vblock
@@ -75,6 +76,8 @@ module blockSQP
     export blockSQPOptions, qpOASES_options
 
     include("utils.jl")
+    # Some utilities for computing the block structure using Symbolics.
+    function compute_hessian_blocks end
 
     include("solver.jl")
     

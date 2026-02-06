@@ -64,10 +64,10 @@ end
     afterwards.
 """
 function get_Layout(args...; kwargs...)
-    prevLayout, precLayout = extract_preLayouts(args...; kwargs...)
-    return NLPlayout((get_BlockDescriptors(prevLayout)...,), 
+    prevLayout, precLayout = get_preLayouts(args...; kwargs...)
+    return NLPlayout((blockDescriptors(prevLayout)...,), 
                      to_Axis(prevLayout), 
-                     (get_BlockDescriptors(precLayout)...,), 
+                     (blockDescriptors(precLayout)...,), 
                      to_Axis(precLayout))
 end
 
