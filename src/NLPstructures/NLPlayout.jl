@@ -22,6 +22,11 @@ struct NLPlayout{VB, VL <: ComponentArrays.AbstractAxis, CB, CL <: ComponentArra
         for vBlock in layout.vBlocks
             assert_layout(vBlock, layout)
         end
+        #If HessBlocks are present, must cover the full range exactly.
+        hBlocks = hessBlocks(layout)
+        hlength = sum(hBlocks .|> Base.Fix1(axsubrange, layout.vLayout) .|> length)
+        @assert hlength in (0, axlength(layout.vLayout))
+        
         return layout
     end
 end

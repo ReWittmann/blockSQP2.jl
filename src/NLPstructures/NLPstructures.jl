@@ -63,7 +63,7 @@ end
     is available from the passed arguments and does not need to be modified 
     afterwards.
 """
-function get_Layout(args...; kwargs...)
+function get_layout(args...; kwargs...)
     prevLayout, precLayout = get_preLayouts(args...; kwargs...)
     return NLPlayout((blockDescriptors(prevLayout)...,), 
                      to_Axis(prevLayout), 
@@ -71,7 +71,7 @@ function get_Layout(args...; kwargs...)
                      to_Axis(precLayout))
 end
 
-export get_preLayouts, get_Layout
+export get_preLayouts, get_layout
 
 
 end #module

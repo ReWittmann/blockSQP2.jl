@@ -22,13 +22,14 @@ function SciMLBase.__init(
             options::blockSQPOptions=blockSQPOptions(),
             blockIdx::Union{Vector{<:Integer}, Nothing} = nothing,
             vblocks::Union{Vector{blockSQP.vblock}, Nothing} = nothing,
+            condenser::Union{blockSQP.Condenser, Nothing} = nothing,
             layout::Union{NLPstructures.NLPlayout, Nothing} = nothing,
             kwargs...
             )
     return OptimizationCache(prob, opt; 
         callback = callback, progress = progress, maxiters = maxiters,
         options=options, blockIdx = blockIdx, vblocks = vblocks, layout = layout,
-        kwargs...)
+        condenser = condenser, kwargs...)
 end
 
 function __map_optimizer_args!(cache::OptimizationCache,
@@ -85,9 +86,8 @@ function SciMLBase.__solve(
                 abstol = cache.solver_args.abstol, reltol = cache.solver_args.reltol,
                 cache.solver_args...)
     
-    
+    _blockIdx = Cint[0, num_x]
     _vblocks = blockSQP.vblock[]
-    _blockIdx = Cint[0,num_x]
     _condenser = nothing
     
     if !isnothing(cache.solver_args.layout) 
@@ -96,13 +96,15 @@ function SciMLBase.__solve(
         _vblocks = create_vblocks(_layer)
         _condenser = blockSQP.Condenser(_layout)
     end
+    if !isnothing(cache.solver_args.condenser)
+        _condenser = cache.solver_args.condenser
+    end
     if !isnothing(cache.solver_args.vblocks)
         _vblocks = cache.solver_args.vblocks
     end
-    if !isnothing(chache.solver_args.blockIdx)
+    if !isnothing(cache.solver_args.blockIdx)
         _blockIdx = cache.solver_args.blockIdx
     end
-    
     
     _loss = function (θ)
         x = cache.f(θ, cache.p)
@@ -179,7 +181,7 @@ function SciMLBase.__solve(
                             _u0, _lambda_0; 
                             blockIdx = _blockidx,
                             vblocks = _vblocks,
-                            cond = _condenser,
+                            condenser = _condenser,
                             jac_g_row = jac_g_row, jac_g_colind = jac_g_col,
                             nnz = nnz,
                             jac_g_nz = use_sparse_functions ? sparse_jac : blockSQP.fnothing

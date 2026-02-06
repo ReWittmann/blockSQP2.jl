@@ -216,7 +216,7 @@ COLIND = jac_g0.colptr .-1
 
 jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 
-BSQPcond = blockSQP.Condenser(NLPstruc)
+condenser = blockSQP.Condenser(NLPstruc)
 
 ("BlockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
 prob = blockSQP.blockSQPProblem(
@@ -224,7 +224,7 @@ prob = blockSQP.blockSQPProblem(
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(NLPstructures.axlength(vLayout) + NLPstructures.axlength(cLayout));
     blockIdx = hessBlockIndexZeroBased(NLPstruc), jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
-    nnz = length(ROW), vblocks = blockSQP.create_vblocks(NLPstruc), cond = BSQPcond
+    nnz = length(ROW), vblocks = blockSQP.create_vblocks(NLPstruc), condenser = condenser
 )
 opts = blockSQP.sparse_options()
 opts.max_extra_steps = 0

@@ -33,7 +33,7 @@ cLayout = TupleBD[(matchings, [(m1, 2), (m2, 2), (m3, 2)]), (constr, 1)]
 vBlocks = [MSsys, h0, h1, h2, h3, u0, x1, u1, x2, u2, x3, u3]
 cBlocks = [matchings, m1, m2, m3, constr]
 
-NLPlayout = NLPstructure((vBlocks...,), to_Axis(vLayout), (cBlocks...,), to_Axis(cLayout))
+layout = NLPlayout((vBlocks...,), to_Axis(vLayout), (cBlocks...,), to_Axis(cLayout))
 
 
 
@@ -61,7 +61,7 @@ lb_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, -1.9]
 ub_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.9]
 
 using blockSQP
-condenser = blockSQP.create_condenser(NLPlayout)
+condenser = blockSQP.Condenser(layout)
 
 H = zeros(10,10)
 H[1,1] = hess[1][1,1]

@@ -73,11 +73,14 @@ module blockSQP
     include("problem.jl")
 
     include("options.jl")
+    blockSQPOptions = Options
     export blockSQPOptions, qpOASES_options
-
+    
     include("utils.jl")
     # Some utilities for computing the block structure using Symbolics.
-    function compute_hessian_blocks end
+    function compute_hessian_blocks(args...;kwargs...) 
+        error("Symbolics.jl being loaded is required for Hessian block computation")
+    end
 
     include("solver.jl")
     

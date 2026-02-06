@@ -81,31 +81,34 @@ function blockDescriptors(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDes
 end
 
     
-function Base.getindex(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
-    return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
-end
+# function Base.getindex(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
+#     return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
+# end
 function Base.getindex(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
     return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
 end
 
-function Base.getindex(ax::AX, ind::B) where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
-    return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
-end
+# function Base.getindex(ax::AX, ind::B) where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
+#     return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
+# end
 function Base.getindex(ax::AX, @nospecialize(ind::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
     return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
 end
 
-function axsubrange(ax::AX, ind::B)  where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
-    return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
-end
+# function axsubrange(ax::AX, ind::B)  where {AX <: ComponentArrays.AbstractAxis, B <: AbstractBlockDescriptor}
+#     return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
+# end
 function axsubrange(ax::AX, @nospecialize(ind::BlockDescriptor))  where {AX <: ComponentArrays.AbstractAxis}
     return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
 end
 
-
-function Base.view(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
-    return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
+function axsublength(ax::AX, @nospecialize(blk::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
+    return length(axsubrange(ax, blk))
 end
+
+# function Base.view(collection::T, ind::B) where {B <: AbstractBlockDescriptor, T <: ComponentArrays.ComponentArray}
+#     return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
+# end
 function Base.view(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
     return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
 end
@@ -117,13 +120,13 @@ end
 
 
 """Extract \"simple\" variable blocks, i.e. blocks that have no subblocks"""
-function simple_vBlocks(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-    return NLPstruc.vBlocks |> Base.Fix1(filter, x-> (typeof(NLPstruc.vLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(NLPstruc.vLayout, x)))))
+function simple_vBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
+    return layout.vBlocks |> Base.Fix1(filter, x-> (typeof(layout.vLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.vLayout, x)))))
 end
 
 """Extract \"simple\" constraint blocks, i.e. blocks that have no subblocks"""
-function simple_cBlocks(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL, CB, CL <: ComponentArrays.Axis}
-    return NLPstruc.cBlocks |> Base.Fix1(filter, x-> (typeof(NLPstruc.cLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(NLPstruc.cLayout, x)))))
+function simple_cBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL, CB, CL <: ComponentArrays.Axis}
+    return layout.cBlocks |> Base.Fix1(filter, x-> (typeof(layout.cLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.cLayout, x)))))
 end
 
 
@@ -146,28 +149,31 @@ end
 
 parent_of(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor)) = !isnothing(b.parent) && b.parent == p
 
-function hessBlocks(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-    return NLPstruc.vBlocks |> Base.Fix1(filter, x-> (blocktypeof(x) <: Hess)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(NLPstruc.vLayout, x)))))
+function hessBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
+    return layout.vBlocks |> Base.Fix1(filter, x -> blocktypeof(x) <: Hess) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.vLayout, x)))))
 end
 
-function hessBlockSizes(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-    return NLPstruc.vBlocks |> Base.Fix1(filter, x->blocktypeof(x) == Hess) .|> Base.Fix1(getindex, NLPstruc.vLayout) .|> Base.Fix2(getfield, :idx) |> collect |> sort! .|> length
+function hessBlockSizes(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
+    hBlocks = hessBlocks(layout)
+    length(hBlocks) == 0 && return [axlength(layout.vLayout)]
+    # return hBlocks .|> Base.Fix1(getindex, layout.vLayout) .|> Base.Fix2(getfield, :idx) |> collect |> sort! .|> length
+    return hBlocks .|> Base.Fix1(axsublength, layout.vLayout)
 end
 
-function hessBlockIndexZeroBased(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-    return cumsum(Int64[0, hessBlockSizes(NLPstruc)...])
+function hessBlockIndexZeroBased(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
+    return cumsum(Int64[0, hessBlockSizes(layout)...])
 end
 
-function hessBlockIndexOneBased(NLPstruc::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
-    return cumsum(Int64[1, hessBlockSizes(NLPstruc)...])
+function hessBlockIndexOneBased(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
+    return cumsum(Int64[1, hessBlockSizes(layout)...])
 end
 
-function subBlocks(NLPstruc::NLPlayout{VB,VL,CB,CL}, @nospecialize(blk::BlockDescriptor)) where {VB, VL <: ComponentArrays.Axis, CB, CL <: ComponentArrays.Axis}
-    let __MP = tagmap(NLPstruc)
-        if blk in NLPstruc.vBlocks
-            return axsubkeys(NLPstruc.vLayout, blk) .|> x->__MP[x]
-        elseif blk in NLPstruc.cBlocks
-            return axsubkeys(NLPstruc.cLayout, blk) .|> x->__MP[x]
+function subBlocks(layout::NLPlayout{VB,VL,CB,CL}, @nospecialize(blk::BlockDescriptor)) where {VB, VL <: ComponentArrays.Axis, CB, CL <: ComponentArrays.Axis}
+    let __MP = tagmap(layout)
+        if blk in layout.vBlocks
+            return axsubkeys(layout.vLayout, blk) .|> x->__MP[x]
+        elseif blk in layout.cBlocks
+            return axsubkeys(layout.cLayout, blk) .|> x->__MP[x]
         end
     end
     error("Block is not part of the given NLPlayout")

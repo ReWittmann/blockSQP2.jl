@@ -2,15 +2,17 @@ module SymbolicsHessUtilities
 
 using SparseArrays
 using Symbolics
+using blockSQP
 
+# Some helper functions to obtain the block structure as needed by blockSQP,
+# placed into an extension to avoid the heavy Symbolics dependency.
 
-# Some helper functions to obtain the block structure as needed by blockSQP
-function compute_hessian_blocks(A::AbstractMatrix)
+function blockSQP.compute_hessian_blocks(A::AbstractMatrix)
     _A = SparseArrays.SparseMatrixCSC(A)
     compute_hessian_blocks(_A)
 end
 
-function compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
+function blockSQP.compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
     n = size(A,1) # assume quadratic matrix here, since it is a hessian
     blockIdx = [0]
     max_row = zeros(n)
@@ -34,7 +36,7 @@ function compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
     return blockIdx
 end
 
-function compute_hessian_blocks(f, g, num_x::Integer,
+function blockSQP.compute_hessian_blocks(f, g, num_x::Integer,
                  num_cons::Integer; parameters=[])
     lag(x, mu) = begin
         fx = f(x, parameters)

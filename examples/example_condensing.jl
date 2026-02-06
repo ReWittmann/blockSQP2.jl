@@ -85,10 +85,10 @@ targets = Array{blockSQP.condensing_target, 1}(undef, 1)
 #3 stages, index of first free vblock, index after last dependent vblock, index of first condition, index after last condition
 targets[1] = blockSQP.condensing_target(Int32(3), Int32(0), Int32(7), Int32(0), Int32(3))
 
-cond = blockSQP.Condenser(vblocks, cblocks, hsizes, targets, Int32(2))
+condenser = blockSQP.Condenser(vblocks, cblocks, hsizes, targets, Int32(2))
 
 print("Created condenser julia struct. Condensing info:\n")
-blockSQP.print_info(cond)
+blockSQP.print_info(condenser)
 
 
 #Call a QP solver
@@ -101,14 +101,11 @@ results = QPALM.solve!(model)
 xi = results.x
 lam = results.y
 
-condensed_h, condensed_jacobian, condensed_hess,
+condensed_h, condensed_jacobian, condensed_hess, 
     condensed_lb_var, condensed_ub_var, condensed_lb_con, condensed_ub_con = 
-    blockSQP.full_condense!(cond, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
-
-
+        blockSQP.full_condense!(condenser, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
 
 conDENSEd_hess = condensed_hess[1]
-
 
 conDENSEd_jacobian = zeros(7,4)
 for j = 1:4
@@ -116,7 +113,6 @@ for j = 1:4
         conDENSEd_jacobian[condensed_jacobian.row[i + 1] + 1, j] = condensed_jacobian.nz[i + 1]
     end
 end
-
 
 print("\n###########################################\nCondensed QP info:\ncondensed_h=\n") 
 display(condensed_h) 
@@ -131,7 +127,6 @@ display(condensed_lb_con)
 print("\ncondensed_ub_con=\n")
 display(condensed_ub_con)
 print("\n")
-
 
 ID = zeros(4,4)
 for i = 1:4
@@ -148,26 +143,21 @@ condensed_results = QPALM.solve!(model)
 xi_cond = condensed_results.x
 lam_cond = condensed_results.y
 
-
 print("\nPrimal solution of uncondensed QP:\n")
 display(xi)
 print("\nDual solution of uncondensed QP:\n")
 display(lam)
-
-
 print("\nPrimal solution of condensed QP:\n")
 display(xi_cond)
 print("\nDual solution of condensed QP:\n")
 display(lam_cond)
 
-
-xi_rest, lam_rest = blockSQP.recover_var_mult(cond, xi_cond, lam_cond)
+xi_rest, lam_rest = blockSQP.recover_var_mult(condenser, xi_cond, lam_cond)
 
 print("\nPrimal restored solution:\n")
 display(xi_rest)
 print("\nDual restored solution:\n")
 display(lam_rest)
-
 print("\n||xi - xi_rest||_∞ = ", maximum(xi - xi_rest))
 print("\n||lam - lam_rest||_∞ ", maximum(lam - lam_rest), "\n")
 

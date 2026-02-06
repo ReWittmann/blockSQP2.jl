@@ -1,13 +1,13 @@
 # Holder for C++ side SQPstats object
-mutable struct __SQPstats
+mutable struct SQPstatsHolder
     obj::Ptr{Cvoid}
-    function __SQPstats(arg_obj::Ptr{Cvoid})
+    function SQPstatsHolder(arg_obj::Ptr{Cvoid})
         newobj = new(arg_obj)
-        function __SQPstats_finalizer!(arg_stats::__SQPstats)
+        function SQPstats_finalizer!(arg_stats::SQPstatsHolder)
             BSQP = libblockSQP[]
             ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_stats.obj)
         end
-        finalizer(__SQPstats_finalizer!, newobj)
+        finalizer(SQPstats_finalizer!, newobj)
     end
 end
 
@@ -17,7 +17,7 @@ function SQPstats(outpath::String)
     if !all(Ctrans .<= 0x7f)
         error("SQPstats outpath may not contain non-ASCII characters")
     end
-    return __SQPstats(ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans))))
+    return SQPstatsHolder(ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans))))
 end
 
 
@@ -47,10 +47,10 @@ mutable struct Solver
     
     #Julia side objects
     Jul_Problem::blockSQPProblem
-    Jul_Opts::blockSQPOptions
-    Jul_Stats::__SQPstats
+    Jul_Opts::Options
+    Jul_Stats::SQPstatsHolder
     
-    Solver(J_prob::blockSQPProblem, J_opts::blockSQPOptions, J_stats::__SQPstats) = begin        
+    Solver(J_prob::blockSQPProblem, J_opts::Options, J_stats::SQPstatsHolder) = begin        
         BSQP = libblockSQP[]
         new_Problemspec_obj = ccall(@dlsym(BSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
         
@@ -122,8 +122,8 @@ mutable struct Solver
             ccall(@dlsym(BSQP, "Problemspec_pass_vblocks"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), new_Problemspec_obj, vblock_array_obj, Cint(length(J_prob.vblocks)))
         end
         
-        if !isnothing(J_prob.cond)
-            ccall(@dlsym(BSQP, "Problemspec_set_cond"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, J_prob.cond.Condenser_obj)
+        if !isnothing(J_prob.condenser)
+            ccall(@dlsym(BSQP, "Problemspec_set_cond"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, J_prob.condenser.Condenser_obj)
         end
         
         #Create blockSQP and QPsolver options classes on the C++ side
