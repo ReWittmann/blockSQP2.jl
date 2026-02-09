@@ -36,7 +36,7 @@ include("NLPlayout.jl")
 export NLPlayout, tagmap
 
 include("LayoutUtils.jl")
-export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, axsubindex, axsubkeys,
+export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, axsubkeys, axsublength,
        simple_vBlocks, simple_cBlocks, hessBlocks, hessBlockSizes, hessBlockIndexZeroBased, hessBlockIndexOneBased,
        has_parent, parent_of, has_parent_type, blockDescriptors, tagmap, subBlocks
 

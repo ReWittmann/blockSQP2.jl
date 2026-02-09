@@ -1,6 +1,6 @@
 module blockSQP
     using EnumX, SparseArrays
-    
+    using Reexport
 	import Base.setproperty!, Base.getproperty
     
     #See Julia documentation of Indirect Calls
@@ -72,8 +72,8 @@ module blockSQP
     include("problem.jl")
 
     include("options.jl")
-    blockSQPOptions = Options
-    export blockSQPOptions, qpOASES_options
+    blockSQPoptions = Options
+    export blockSQPoptions, qpOASESoptions
     
     include("utils.jl")
     # Some utilities for computing the block structure using Symbolics.
@@ -86,7 +86,7 @@ module blockSQP
     include("NLPstructures/NLPstructures.jl")
     
     include("structures.jl")
-    export create_vblocks, create_condenser_args, create_condenser
+    export create_vblocks, create_condenser_args
     
     #ComponentArrays is used by NLPstructures submodule, so we always use ComponentArrays for now.
     include("ComponentArraysExtension.jl")

@@ -7,5 +7,5 @@ x0 = Float64[10.0, 10.0]
 
 optprob_wcons = OptimizationFunction(_f, AutoForwardDiff(), cons = _g)
 prob = OptimizationProblem(optprob_wcons, x0, SciMLBase.NullParameters(), lcons = [0.0], ucons = [0.0])
-options = blockSQPOptions(; sparse = true, max_conv_QPs = 1, indef_delay = 1, enable_linesearch = false)
+options = blockSQPoptions(; sparse = true, max_conv_QPs = 1, indef_delay = 1, enable_linesearch = false)
 sol_bsqp_wcons = solve(prob, blockSQP.Optimizer(); sparsity=true, options = options)

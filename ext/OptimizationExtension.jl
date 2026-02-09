@@ -18,7 +18,7 @@ function SciMLBase.__init(
             ;
             callback = OptimizationBase.DEFAULT_CALLBACK,
             progress = false, maxiters=nothing,
-            options::blockSQPOptions=blockSQPOptions(),
+            options::blockSQP.Options=blockSQPoptions(),
             blockIdx::Union{Vector{<:Integer}, Nothing} = nothing,
             vblocks::Union{Vector{blockSQP.vblock}, Nothing} = nothing,
             condenser::Union{blockSQP.Condenser, Nothing} = nothing,
@@ -32,7 +32,7 @@ function SciMLBase.__init(
 end
 
 function __map_optimizer_args!(cache::OptimizationCache,
-    opt::blockSQP.blockSQPOptions;
+    opt::blockSQP.Options;
     callback = nothing,
     maxiters::Union{Number, Nothing} = nothing,
     maxtime::Union{Number, Nothing} = nothing,
@@ -41,7 +41,7 @@ function __map_optimizer_args!(cache::OptimizationCache,
     kwargs...)
 
     for j in kwargs
-        if j.first in fieldnames(blockSQP.blockSQPOptions)
+        if j.first in fieldnames(blockSQP.Options)
             setproperty!(opt, j.first, j.second)
         end
     end

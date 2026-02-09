@@ -31,7 +31,7 @@ QPopts = qpOASES_options(sparsityLevel = 0,
                          )                            
                             
 #Set options
-opts = blockSQPOptions(opt_tol = 1e-12,
+opts = blockSQP.Options(opt_tol = 1e-12,
                        feas_tol = 1e-12,
                        enable_linesearch = false,
                        hess_approx = :BFGS,         #Either :BFGS, "BFGS" or map(c->Cchar(c),collect("BFGS"))

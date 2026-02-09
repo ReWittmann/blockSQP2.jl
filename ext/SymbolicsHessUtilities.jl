@@ -10,7 +10,7 @@ using blockSQP
 
 function blockSQP.compute_hessian_blocks(A::AbstractMatrix)
     _A = SparseArrays.SparseMatrixCSC(A)
-    compute_hessian_blocks(_A)
+    blockSQP.compute_hessian_blocks(_A)
 end
 
 function blockSQP.compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
@@ -49,7 +49,7 @@ function blockSQP.compute_hessian_blocks(f, g, num_x::Integer,
     sparse_hess = Symbolics.hessian_sparsity(x -> lag(x, ones(num_cons)), input)
     @info "Hessian sparsity structure:"
     display(sparse_hess)
-    compute_hessian_blocks(sparse_hess)
+    blockSQP.compute_hessian_blocks(sparse_hess)
 end
 
 function blockSQP.compute_hessian_blocks(prob::SciMLBase.OptimizationProblem)
@@ -61,7 +61,7 @@ function blockSQP.compute_hessian_blocks(prob::SciMLBase.OptimizationProblem)
             return cons
         end
     end
-    compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
+    blockSQP.compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
 end
 
 

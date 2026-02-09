@@ -222,9 +222,9 @@ jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 condenser = blockSQP.Condenser(layout)
 
 _blockIdx = hessBlockIndexZeroBased(layout)
-@test _blockIdx[0] == 1.0
-@test _blockIdx[1] == nu
-@test _blockIdx[2] == 2*nu + nx
+@test _blockIdx[1] == 0
+@test _blockIdx[2] == nu
+@test _blockIdx[3] == 2*nu + nx
 @test _blockIdx[end] == nVar
 
 
@@ -235,7 +235,7 @@ prob_default = blockSQP.blockSQPProblem(
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(nVar + nCon);
     blockIdx = _blockIdx, jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
-    nnz = length(ROW), vblocks = nothing, condenser = nothing
+    nnz = length(ROW), vblocks = blockSQP.vblock[], condenser = nothing
 )
 prob_vblocks = blockSQP.blockSQPProblem(
     f, g, grad_f, blockSQP.fnothing,
@@ -265,7 +265,7 @@ x_opt = ComponentArray(x_opt, layout.vLayout)
 
 opts = blockSQP.sparse_options()
 opts.automatic_scaling = true
-opts_.max_conv_QPs = 4
+opts.max_conv_QPs = 4
 opts.conv_strategy = 2
 meth = blockSQP.Solver(prob_vblocks, opts, stats)
 blockSQP.init!(meth)

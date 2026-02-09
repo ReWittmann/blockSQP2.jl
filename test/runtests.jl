@@ -87,7 +87,7 @@ using LinearAlgebra
 
         prob = OptimizationProblem(optprob_wcons, [10.0, 10.0], Float64[], lcons = [0.0], ucons = [0.0])
         using Symbolics
-        blockIdx_calc = compute_hessian_blocks(prob)
+        blockIdx_calc = blockSQP.compute_hessian_blocks(prob)
         sol_sparse_1 = solve(prob, blockSQP.Optimizer(); blockIdx=blockIdx_calc)
         sol_sparse_2 = solve(prob, blockSQP.Optimizer(); blockIdx=[0,1,2])
         options = blockSQP.Options(sparse=true, hess_approx=:SR1)
