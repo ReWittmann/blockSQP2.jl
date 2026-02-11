@@ -230,21 +230,21 @@ _blockIdx = hessBlockIndexZeroBased(layout)
 
 stats = blockSQP.SQPstats("./")
 
-prob_default = blockSQP.blockSQPProblem(
+prob_default = blockSQP.Problem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(nVar + nCon);
     blockIdx = _blockIdx, jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
     nnz = length(ROW), vblocks = blockSQP.vblock[], condenser = nothing
 )
-prob_vblocks = blockSQP.blockSQPProblem(
+prob_vblocks = blockSQP.Problem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(nVar + nCon);
     blockIdx = _blockIdx, jac_g_row = ROW, jac_g_colind = COLIND, jac_g_nz = jac_gNZ,
     nnz = length(ROW), vblocks = blockSQP.create_vblocks(layout), condenser = nothing
 )
-prob_condensing = blockSQP.blockSQPProblem(
+prob_condensing = blockSQP.Problem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(nVar + nCon);

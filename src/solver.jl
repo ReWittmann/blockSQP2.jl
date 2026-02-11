@@ -1,11 +1,11 @@
 # Holder for C++ side SQPstats object
-mutable struct SQPstatsHolder
-    obj::Ptr{Cvoid}
-    function SQPstatsHolder(arg_obj::Ptr{Cvoid})
+mutable struct Stats
+    SQPstats_obj::Ptr{Cvoid}
+    function Stats(arg_obj::Ptr{Cvoid})
         newobj = new(arg_obj)
-        function SQPstats_finalizer!(arg_stats::SQPstatsHolder)
+        function SQPstats_finalizer!(arg_stats::Stats)
             BSQP = libblockSQP[]
-            ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_stats.obj)
+            ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_stats.SQPstats_obj)
         end
         finalizer(SQPstats_finalizer!, newobj)
     end
@@ -17,7 +17,7 @@ function SQPstats(outpath::String)
     if !all(Ctrans .<= 0x7f)
         error("SQPstats outpath may not contain non-ASCII characters")
     end
-    return SQPstatsHolder(ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans))))
+    return Stats(ccall(@dlsym(BSQP, "create_SQPstats"), Ptr{Cvoid}, (Ptr{Cchar},), pointer(reinterpret(Cchar, Ctrans))))
 end
 
 
@@ -46,15 +46,15 @@ mutable struct Solver
     QPsolver_options_obj::Ptr{Cvoid}
     
     #Julia side objects
-    Jul_Problem::blockSQPProblem
+    Jul_Problem::Problem
     Jul_Opts::Options
-    Jul_Stats::SQPstatsHolder
+    Jul_Stats::Stats
     
-    Solver(J_prob::blockSQPProblem, J_opts::Options, J_stats::SQPstatsHolder) = begin        
+    Solver(J_prob::Problem, J_opts::Options, J_stats::Stats) = begin        
         BSQP = libblockSQP[]
         new_Problemspec_obj = ccall(@dlsym(BSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
         
-        #Shared closure (blockSQPProblem instance) of all callbacks
+        #Shared closure (Problem instance) of all callbacks
         ccall(@dlsym(BSQP, "Problemspec_set_closure"), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, pointer_from_objref(J_prob))
         
         ccall(@dlsym(BSQP, "Problemspec_set_dense_init"), Cvoid,
@@ -130,7 +130,7 @@ mutable struct Solver
         new_SQPoptions_obj, new_QPsolver_options_obj = create_cxx_options(J_opts)
         
         #Create method class on the C++ side. Return nullpointer if an exception is thrown, in which case an error message will be available
-        new_SQPmethod_obj = ccall(@dlsym(BSQP, "create_SQPmethod"), Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, new_SQPoptions_obj, J_stats.obj)
+        new_SQPmethod_obj = ccall(@dlsym(BSQP, "create_SQPmethod"), Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}), new_Problemspec_obj, new_SQPoptions_obj, J_stats.SQPstats_obj)
         if new_SQPmethod_obj == C_NULL
             error(unsafe_string(ccall(@dlsym(BSQP, "get_error_message"), Ptr{Cchar}, ())))
         end
@@ -168,7 +168,7 @@ end
 
 function get_itCount(sol::Solver)
     BSQP = libblockSQP[]
-    return ccall(@dlsym(BSQP, "SQPstats_get_itCount"), Cint, (Ptr{Cvoid},), sol.Jul_Stats.obj)
+    return ccall(@dlsym(BSQP, "SQPstats_get_itCount"), Cint, (Ptr{Cvoid},), sol.Jul_Stats.SQPstats_obj)
 end
 
 #Allocate space for solution on julia side and call C method to fill it

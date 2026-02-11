@@ -28,17 +28,35 @@ end
 
 @nlpexport Block Variables Constraints Hess Matching Matchings
 
-#Note: The AbstractVector should be of type AbstractVector{TupleBD{S}}
-TupleBD{S} = Tuple{BlockDescriptor, Union{AbstractVector, S}} where {S <: Integer}
+#Note: The AbstractVector is expected to be an AbstractVector{TupleBD{S}} or AbstractUnitRange
+TupleBD = Tuple{BlockDescriptor, Union{AbstractVector, Integer}}
+# TupleBD = Tuple{BlockDescriptor, T} where T <: Union{AbstractVector, Integer, Union{AbstractVector, Integer}}
 export TupleBD
 
 include("NLPlayout.jl")
 export NLPlayout, tagmap
 
 include("LayoutUtils.jl")
-export axlength, axsubrange, to_NamedTuple, to_ComponentArray, to_UR, to_Axis, axsubkeys, axsublength,
-       simple_vBlocks, simple_cBlocks, hessBlocks, hessBlockSizes, hessBlockIndexZeroBased, hessBlockIndexOneBased,
-       has_parent, parent_of, has_parent_type, blockDescriptors, tagmap, subBlocks
+export to_NamedTuple, 
+       to_ComponentArray, 
+       to_UR, 
+       to_Axis, 
+       axlength, 
+       axsubkeys, 
+       axsublength,
+       axsubrange, 
+       simple_vBlocks, 
+       simple_cBlocks, 
+       has_parent, 
+       has_parent_type, 
+       has_parent_subtype,
+       hessBlocks, 
+       hessBlockSizes, 
+       hessBlockIndexZeroBased, 
+       hessBlockIndexOneBased,
+       blockDescriptors, 
+       tagmap, 
+       subBlocks
 
 
 include("MultipleShootingDF.jl")

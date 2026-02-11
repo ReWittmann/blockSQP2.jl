@@ -17,8 +17,8 @@ function SciMLBase.__init(
             prob::SciMLBase.OptimizationProblem, opt::blockSQPOptimizer,
             ;
             callback = OptimizationBase.DEFAULT_CALLBACK,
-            progress = false, maxiters=nothing,
-            options::blockSQP.Options=blockSQPoptions(),
+            progress = false, maxiters = nothing,
+            options::blockSQP.Options=blockSQP.Options(),
             blockIdx::Union{Vector{<:Integer}, Nothing} = nothing,
             vblocks::Union{Vector{blockSQP.vblock}, Nothing} = blockSQP.vblock[],
             condenser::Union{blockSQP.Condenser, Nothing} = nothing,
@@ -180,7 +180,7 @@ function SciMLBase.__solve(
     _ub = blockSQP.__upperbounds(_ub)
     _u0 = blockSQP.__initial_values(cache.u0)
     
-    sqp_prob = blockSQP.blockSQPProblem(_loss, _cons, _g, _jac_cons,
+    sqp_prob = blockSQP.Problem(_loss, _cons, _g, _jac_cons,
                             _lb, _ub, _lb_cons, _ub_cons,
                             _u0, _lambda_0; 
                             blockIdx = _blockIdx,

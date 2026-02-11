@@ -217,8 +217,9 @@ jac_gNZ(x) = jacobian(g, sparse_forward_backend, x).nzval
 
 condenser = blockSQP.Condenser(layout)
 
-("BlockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
-prob = blockSQP.blockSQPProblem(
+("blockSQP allows passing sparse Jacobians, so it will have a runtime advantage.\n")
+# alternative: prob = BlockSQPProblem(...)
+prob = blockSQP.Problem(
     f, g, grad_f, blockSQP.fnothing,
     collect(lb_var), collect(ub_var), lb_con, ub_con,
     collect(x_start), zeros(NLPstructures.axlength(vLayout) + NLPstructures.axlength(cLayout));

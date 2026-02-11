@@ -70,10 +70,12 @@ module blockSQP
     include("condenser.jl")
     
     include("problem.jl")
+    BlockSQPProblem = Problem
+    export BlockSQPProblem
 
     include("options.jl")
-    blockSQPoptions = Options
-    export blockSQPoptions, qpOASESoptions
+    BlockSQPOptions = Options
+    export BlockSQPOptions
     
     include("utils.jl")
     # Some utilities for computing the block structure using Symbolics.
@@ -82,7 +84,10 @@ module blockSQP
     end
 
     include("solver.jl")
-    
+    BlockSQPSolver = Solver
+    export BlockSQPSolver
+    export init!, run!, finish!, get_itCount, get_primal_solution, get_dual_solution, get_dual_solution_full
+
     include("NLPstructures/NLPstructures.jl")
     
     include("structures.jl")

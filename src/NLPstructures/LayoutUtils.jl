@@ -1,19 +1,21 @@
 
 
-function _to_NamedTuple(arg::T, start::Vector{S}) where {T<:Integer, S <: Integer}
-    return UnitRange{T}(start[1], (start[1] += arg) - 1)
+# function _to_NamedTuple(arg::T, start::Vector{S}) where {T<:Integer, S <: Integer}
+function _to_NamedTuple(arg::Integer, start::Ref{I}) where I <: Integer
+    return UnitRange(start[], (start[] += I(arg)) - I(1))
 end
-function _to_NamedTuple(arg::UnitRange, start::Vector{S}) where S <: Integer
-    i = start[1]
-    start[1] += length(arg)
-    return arg .- first(arg) .+ i
+function _to_NamedTuple(arg::UnitRange, start::Ref{I}) where I <: Integer
+    i = start[]
+    start[] += length(arg)
+    return arg .- I(first(arg)) .+ i
 end
-function _to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Vector{S}) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}, S <: Integer}
+# function _to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Ref{Int64}) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}}
+function _to_NamedTuple(arg::Vector{Tuple{BD, T}}, start::Ref{I}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, I <: Integer}
     return to_NamedTuple(arg, start)
 end
 
-function to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Vector{S} = [1]) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}, S <: Integer}
-    vals = Union{UnitRange, NamedTuple}[]
+function to_NamedTuple(arg::Vector{Tuple{BD, T}}, start::Ref{I} = Ref{Int64}(1)) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, I <: Integer}
+    vals = Union{NamedTuple, UnitRange}[]
     for elem in arg
         push!(vals, _to_NamedTuple(last(elem), start))
     end
@@ -21,16 +23,16 @@ function to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Vector{S} = [1]) where {
 end
 
 
-function to_ComponentArray(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}}
+function to_ComponentArray(arg::Vector{Tuple{BD, T}}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     return arg |> to_NamedTuple |> ComponentArray
 end
 
 
-_to_UR!(arg::S, start::Vector{T} = [1]) where {S <: Integer, T <: Integer} = 
-    UnitRange{S}(start[1], (start[1] += arg) - 1)
-_to_UR!(arg::UnitRange{S}, start::Vector{T} = [1]) where {S <: Integer, T <: Integer} = 
-    UnitRange{S}(start[1], (start[1] += length(arg)) - 1)
-function _to_UR!(arg::Vector{Tuple{B, T}}, start::Vector{S} = [1]) where {B <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, S <: Integer}
+_to_UR!(arg::Integer, start::Ref{I} = Ref{Int64}(1)) where {I <: Integer} = 
+    UnitRange(start[], (start[] += I(arg)) - I(1))
+_to_UR!(arg::UnitRange, start::Ref{I} = Ref{Int64}(1)) where {I <: Integer} = 
+    UnitRange(start[], (start[] += I(length(arg))) - I(1))
+function _to_UR!(arg::Vector{Tuple{BD, T}}, start::Ref{I} = Ref{Int64}(1)) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, I <: Integer}
     ret = Tuple{B, AbstractVector}[]
     for elem in arg
         push!(ret, (first(elem), _to_UR!(last(elem), start)))
@@ -38,29 +40,29 @@ function _to_UR!(arg::Vector{Tuple{B, T}}, start::Vector{S} = [1]) where {B <: A
     return ret
 end
 
-to_UR(arg::Vector{Tuple{B, T}}, start::S = 1) where {B <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, S <: Integer} = 
-    _to_UR!(arg, [start])
+to_UR(arg::Vector{Tuple{BD, T}}, start::Integer = 1) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}} = 
+    _to_UR!(arg, Ref(start))
 
 
 axlength(arg::ComponentArrays.Axis) = sum([length(arg[key]) for key in keys(arg)])
 
-function to_ViewAxis(arg::UnitRange, start::Vector{S}) where S <: Integer
-    i = start[1]
-    start[1] += length(arg)
-    return arg .- first(arg) .+ i 
+function to_ViewAxis(arg::UnitRange, start::Ref{I}) where I <: Integer
+    i = start[]
+    start[] += length(arg)
+    return arg .- I(first(arg)) .+ i 
 end
-function to_ViewAxis(arg::T, start::Vector{S}) where {T <: Integer, S <: Integer}
-    return UnitRange(start[1], (start[1] += arg) - 1)
+function to_ViewAxis(arg::Integer, start::Ref{I}) where {I <: Integer}
+    return UnitRange(start[], (start[] += I(arg)) - I(1))
 end
-function to_ViewAxis(arg::AbstractVector, start::Vector{S}) where S <: Integer
+function to_ViewAxis(arg::AbstractVector, start::Ref{I}) where I <: Integer
     ax = to_Axis(arg)
-    return ViewAxis(UnitRange(start[1], (start[1] += axlength(ax)) - 1), ax)
+    return ViewAxis(UnitRange(start[], (start[] += I(axlength(ax))) - I(1)), ax)
 end
 
-function to_Axis(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T <: Union{Union{Integer,AbstractVector}, Integer, AbstractVector}}
+function to_Axis(arg::Vector{Tuple{BD, T}}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     names = Symbol[]
     vals = Union{UnitRange,ViewAxis}[]
-    start = [1]
+    start = Ref(1)
     for elem in arg
         push!(vals, to_ViewAxis(last(elem), start))
     end
@@ -72,54 +74,58 @@ function blockDescriptors(arg::T) where {T <: Union{Integer, UnitRange}}
     return BlockDescriptor[]
 end
 
-function blockDescriptors(arg::Tuple{B, T}) where {B <: AbstractBlockDescriptor, T <: Union{Union{Integer,AbstractVector}, Integer, AbstractVector}}
+function blockDescriptors(arg::Tuple{BD, T}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     return vcat([first(arg)], blockDescriptors(last(arg)))
 end
 
-function blockDescriptors(arg::Vector{Tuple{B, T}}) where {B <: AbstractBlockDescriptor, T <: Union{Union{Integer,AbstractVector}, Integer, AbstractVector}}
+function blockDescriptors(arg::AbstractVector{Tuple{BD, T}}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     return arg .|> blockDescriptors |> splat(vcat)
 end
 
-function Base.getindex(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
+function Base.getindex(collection::ComponentArray, @nospecialize(ind::BlockDescriptor))
     return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
 end
 
-function Base.getindex(ax::AX, @nospecialize(ind::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
+function Base.getindex(ax::AbstractAxis, @nospecialize(ind::BlockDescriptor))
     return !isnothing(ind.parent) ? ax[ind.parent].ax[ind.tag] : ax[ind.tag]
 end
 
-function axsubrange(ax::AX, @nospecialize(ind::BlockDescriptor))  where {AX <: ComponentArrays.AbstractAxis}
-    return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
-end
-
-function axsublength(ax::AX, @nospecialize(blk::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
-    return length(axsubrange(ax, blk))
-end
-
-function Base.view(collection::T, @nospecialize(ind::BlockDescriptor)) where {T <: ComponentArrays.ComponentArray}
+function Base.view(collection::ComponentArray, @nospecialize(ind::BlockDescriptor))
     return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
 end
 
-
-function axsubkeys(ax::AX, @nospecialize(ind::BlockDescriptor)) where {AX <: ComponentArrays.AbstractAxis}
+function axsubkeys(ax::AbstractAxis, @nospecialize(ind::BlockDescriptor))
     return ax[ind].ax |> keys |> collect
 end
 
+function axsubrange(ax::AbstractAxis, @nospecialize(ind::BlockDescriptor))
+    return !isnothing(ind.parent) ? axsubrange(ax, ind.parent)[ax[ind].idx] : ax[ind].idx
+end
+
+function axsublength(ax::AbstractAxis, @nospecialize(blk::BlockDescriptor))
+    return length(axsubrange(ax, blk))
+end
+
+# function simple_blocks(blocks::BLKS, layout::NLPlayout{VB,VL,CB,CL}) where {BLKS, VB, VL <: ComponentArrays.Axis, CB, CL}
+#     blocks |> Base.Fix1(filter, x-> (typeof(layout.vLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.vLayout, x)))))
+# end
 
 """Extract \"simple\" variable blocks, i.e. blocks that have no subblocks"""
 function simple_vBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
     return layout.vBlocks |> Base.Fix1(filter, x-> (typeof(layout.vLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.vLayout, x)))))
+    # return simple_blocks(layout.vBlocks, layout)
 end
 
 """Extract \"simple\" constraint blocks, i.e. blocks that have no subblocks"""
 function simple_cBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL, CB, CL <: ComponentArrays.Axis}
     return layout.cBlocks |> Base.Fix1(filter, x-> (typeof(layout.cLayout[x].ax) <: Shaped1DAxis)) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.cLayout, x)))))
+    # return simple_blocks(layout.vBlocks, layout)
 end
+
 
 function has_parent(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor))
     return !isnothing(b.parent) && (b.parent == p || has_parent(b.parent, p))
 end
-
 
 """
 Check whether the BlockDescriptor or any of its parents are of a certain block type.
@@ -131,9 +137,6 @@ end
 function has_parent_subtype(@nospecialize(blk::BlockDescriptor), TP::Type{T}) where T <: Block
     return blocktypeof(blk) <: T || (!isnothing(blk.parent) && has_parent_subtype(blk.parent, TP))
 end
-
-
-parent_of(@nospecialize(b::BlockDescriptor), @nospecialize(p::BlockDescriptor)) = !isnothing(b.parent) && b.parent == p
 
 function hessBlocks(layout::NLPlayout{VB,VL,CB,CL}) where {VB, VL <: ComponentArrays.Axis, CB, CL}
     return layout.vBlocks |> Base.Fix1(filter, x -> blocktypeof(x) <: Hess) |> collect |> (arr -> sort(arr, by = (x -> first(axsubrange(layout.vLayout, x)))))

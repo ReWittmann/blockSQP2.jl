@@ -1,4 +1,4 @@
-mutable struct blockSQPProblem
+mutable struct Problem
 
     nVar::Cint
     nCon::Cint
@@ -31,7 +31,7 @@ mutable struct blockSQPProblem
     x0::Vector{Cdouble}
     lambda0::Vector{Cdouble}
 
-    function blockSQPProblem(f::Function,
+    function Problem(f::Function,
                     g::Function,
                     grad_f::Function,
                     jac_g::Function,
@@ -69,7 +69,7 @@ mutable struct blockSQPProblem
     end
 end
 
-function make_sparse!(B_prob::blockSQPProblem, nnz::Integer, jac_nz::Function, jac_row::Vector{T}, jac_col::Vector{T}) where T <: Integer
+function make_sparse!(B_prob::Problem, nnz::Integer, jac_nz::Function, jac_row::Vector{T}, jac_col::Vector{T}) where T <: Integer
     B_prob.jac_g_nz = jac_nz
     B_prob.jac_g_row = [Cint(x) for x in jac_row]
     B_prob.jac_g_colind = [Cint(x) for x in jac_col]

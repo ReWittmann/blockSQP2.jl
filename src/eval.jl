@@ -1,5 +1,5 @@
 function initialize_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}, Jac::Ptr{Cdouble})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam, Jprob.nVar + Jprob.nCon, own = false)
 
@@ -9,7 +9,7 @@ function initialize_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble
 end
 
 function evaluate_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}, objval::Ptr{Cdouble}, constr::Ptr{Cdouble}, gradObj::Ptr{Cdouble}, constrJac::Ptr{Cdouble}, hess::Ptr{Ptr{Cdouble}}, dmode::Cint, info::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam, Jprob.nVar + Jprob.nCon, own = false)
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
@@ -47,7 +47,7 @@ function evaluate_dense(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble},
 end
 
 function evaluate_simple(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, objval::Ptr{Cdouble}, constr::Ptr{Cdouble}, info::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
     
@@ -60,7 +60,7 @@ end
 
 
 function initialize_sparse(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}, jac_nz::Ptr{Cdouble}, jac_row::Ptr{Cint}, jac_colind::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam, Jprob.nVar + Jprob.nCon, own = false)
     jac_row_arr = unsafe_wrap(Array{Cint, 1}, jac_row, Jprob.nnz, own = false)
@@ -75,7 +75,7 @@ end
 
 
 function evaluate_sparse(Prob::Ptr{Nothing}, xi::Ptr{Cdouble}, lam::Ptr{Cdouble}, objval::Ptr{Cdouble}, constr::Ptr{Cdouble}, gradObj::Ptr{Cdouble}, jac_nz::Ptr{Cdouble}, jac_row::Ptr{Cint}, jac_colind::Ptr{Cint}, hess::Ptr{Ptr{Cdouble}}, dmode::Cint, info::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     xi_arr = unsafe_wrap(Array{Cdouble, 1}, xi, Jprob.nVar, own = false)
     lam_arr = unsafe_wrap(Array{Cdouble, 1}, lam, Jprob.nVar + Jprob.nCon, own = false)
     constr_arr = unsafe_wrap(Array{Cdouble, 1}, constr, Jprob.nCon, own = false)
@@ -120,7 +120,7 @@ end
 
 
 function reduceConstrVio(Prob::Ptr{Cvoid}, xi::Ptr{Cdouble}, info::Ptr{Cint})
-    Jprob = unsafe_pointer_to_objref(Prob)::blockSQPProblem
+    Jprob = unsafe_pointer_to_objref(Prob)::Problem
     if Jprob.continuity_restoration == fnothing
         unsafe_store!(info, Cint(1))
     else
