@@ -11,7 +11,7 @@ mutable struct Stats
     end
 end
 
-function SQPstats(outpath::String)
+function Stats(outpath::String)
     BSQP = libblockSQP2[]
     Ctrans = transcode(UInt8, outpath)
     if !all(Ctrans .<= 0x7f)

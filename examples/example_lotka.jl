@@ -231,7 +231,7 @@ opts.max_extra_steps = 0
 opts.automatic_scaling = true
 opts.max_conv_QPs = 4
 opts.conv_strategy = 2
-stats = blockSQP2.SQPstats("./")
+stats = blockSQP2.Stats("./")
 
 meth = blockSQP2.Solver(prob, opts, stats)
 

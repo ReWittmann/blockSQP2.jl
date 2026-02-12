@@ -41,7 +41,7 @@ function create_condenser_args(struc::NLPlayout, add_dep_bounds = :all) #:none, 
         push!(targets, condensing_target(N, i0-1, i1, j0-1, j1)) 
     end
     
-    vblocks = vblocks_args .|> x->blockSQP.vblock(x.size, x.dependent[1])
+    vblocks = vblocks_args .|> x->vblock(x.size, x.dependent[1])
     return vblocks, cblocks, hsizes, targets, add_dep_bounds
 end
 

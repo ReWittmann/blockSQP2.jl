@@ -1,18 +1,14 @@
-using blockSQP
-using Optimization
 using Test
 using SafeTestsets
-using ForwardDiff
-using OptimizationMOI, Ipopt
-using LinearAlgebra
-@testset "blockSQP.jl " begin
+
+@testset "blockSQP2.jl " begin
     @safetestset "Code quality (Aqua.jl)" begin
         using Aqua
-        using blockSQP
-        Aqua.test_all(blockSQP)
+        using blockSQP2
+        Aqua.test_all(blockSQP2)
     end
     @safetestset "Rosenbrock" begin
-        using blockSQP
+        using blockSQP2
         using Optimization
         using Test
         using ForwardDiff
@@ -25,12 +21,12 @@ using LinearAlgebra
         cons(res, x, p) = (res .= [x[1]^2 + x[2]^2, x[1] * x[2]])
         optprob_wcons = OptimizationFunction(rosenbrock, Optimization.AutoForwardDiff(), cons = cons)
         prob_wcons = OptimizationProblem(optprob_wcons, x0, _p, lcons = [-Inf, -1.0], ucons = [0.8, 2.0])
-        sol_bsqp_wcons = solve(prob_wcons, blockSQP.Optimizer())
+        sol_bsqp_wcons = solve(prob_wcons, blockSQP2.Optimizer())
         sol_ipopt_wcons = solve(prob_wcons, Ipopt.Optimizer())
 
         optprob_wocons = OptimizationFunction(rosenbrock, Optimization.AutoForwardDiff())
         prob_wocons = OptimizationProblem(optprob_wocons, x0, _p)
-        sol_bsqp_wocons = solve(prob_wocons, blockSQP.Optimizer())
+        sol_bsqp_wocons = solve(prob_wocons, blockSQP2.Optimizer())
         sol_ipopt_wocons = solve(prob_wocons, Ipopt.Optimizer())
 
         @testset "Successful optimization" begin
@@ -50,7 +46,7 @@ using LinearAlgebra
         end
         
         @testset "Cache" begin
-            cache = Optimization.init(prob_wocons, blockSQP.Optimizer())
+            cache = Optimization.init(prob_wocons, blockSQP2.Optimizer())
             sol = Optimization.solve!(cache)
             @test sol.retcode == ReturnCode.Success
         end
@@ -66,8 +62,8 @@ using LinearAlgebra
                 return x.iter > 5 # Stop after five iterations
             end
 
-            sol_bsqp_wcons_cb = solve(prob_wcons, blockSQP.Optimizer(); callback=cb)
-            sol_bsqp_wcons_cb1 = solve(prob_wcons, blockSQP.Optimizer(); callback=cb1)
+            sol_bsqp_wcons_cb = solve(prob_wcons, blockSQP2.Optimizer(); callback=cb)
+            sol_bsqp_wcons_cb1 = solve(prob_wcons, blockSQP2.Optimizer(); callback=cb1)
 
             @test sol_bsqp_wcons_cb.retcode == ReturnCode.Success
             @test sol_bsqp_wcons_cb1.retcode == ReturnCode.Default
@@ -75,7 +71,7 @@ using LinearAlgebra
     end
 
     @safetestset "Sparse problems" begin
-        using blockSQP
+        using blockSQP2
         using Optimization
         using Test
         using ForwardDiff
@@ -87,18 +83,18 @@ using LinearAlgebra
 
         prob = OptimizationProblem(optprob_wcons, [10.0, 10.0], Float64[], lcons = [0.0], ucons = [0.0])
         using Symbolics
-        blockIdx_calc = blockSQP.compute_hessian_blocks(prob)
-        sol_sparse_1 = solve(prob, blockSQP.Optimizer(); blockIdx=blockIdx_calc)
-        sol_sparse_2 = solve(prob, blockSQP.Optimizer(); blockIdx=[0,1,2])
-        options = blockSQP.Options(sparse=true, hess_approx=:SR1)
-        sol_sparse_3 = solve(prob, blockSQP.Optimizer(); options=options)
+        blockIdx_calc = blockSQP2.compute_hessian_blocks(prob)
+        sol_sparse_1 = solve(prob, blockSQP2.Optimizer(); blockIdx=blockIdx_calc)
+        sol_sparse_2 = solve(prob, blockSQP2.Optimizer(); blockIdx=[0,1,2])
+        options = blockSQP2.Options(sparse=true, hess_approx=:SR1)
+        sol_sparse_3 = solve(prob, blockSQP2.Optimizer(); options=options)
         @test SciMLBase.successful_retcode(sol_sparse_1) && SciMLBase.successful_retcode(sol_sparse_2) &&
                 SciMLBase.successful_retcode(sol_sparse_3)
         @test isapprox(sol_sparse_1.u, sol_sparse_2.u; atol = 1e-5)
         @test isapprox(sol_sparse_2.u, sol_sparse_3.u; atol = 1e-5)
     end
     @safetestset "LP on unit circle" begin
-        using blockSQP
+        using blockSQP2
         using Optimization
         using Test
         using ForwardDiff
@@ -113,7 +109,7 @@ using LinearAlgebra
         optprob_lin = OptimizationFunction(lin_ex, Optimization.AutoForwardDiff(), cons=cons_unit)
         prob_lin = OptimizationProblem(optprob_lin, x0, Float64[], lcons=[1.0], ucons=[1.0])
 
-        sol_bsqp = solve(prob_lin, blockSQP.Optimizer())
+        sol_bsqp = solve(prob_lin, blockSQP2.Optimizer())
         sol_ipopt = solve(prob_lin, Ipopt.Optimizer())
 
         @testset "Primal solution" begin
@@ -126,22 +122,22 @@ using LinearAlgebra
 
     end
     @safetestset "compute_hessian_blocks" begin
-        using blockSQP
+        using blockSQP2
         using Optimization
         using Symbolics
         using Test
         using LinearAlgebra
         H1 = [1 0 ; 0 1]
-        blocks_h1 = blockSQP.compute_hessian_blocks(H1)
+        blocks_h1 = blockSQP2.compute_hessian_blocks(H1)
         @test blocks_h1 == [0,1,2]
 
         block1, block2 = diagm(ones(3)), ones(2,2)
         H2 = [block1 zeros(3,2); zeros(2,3) block2]
-        blocks_h2 = blockSQP.compute_hessian_blocks(H2)
+        blocks_h2 = blockSQP2.compute_hessian_blocks(H2)
         @test blocks_h2 == [0,1,2,3,5]
 
         H3 = ones(4,4)
-        blocks_h3 = blockSQP.compute_hessian_blocks(H3)
+        blocks_h3 = blockSQP2.compute_hessian_blocks(H3)
         @test blocks_h3 == [0,4]
     end
     @safetestset "Lotka Volterra manual MS" begin
