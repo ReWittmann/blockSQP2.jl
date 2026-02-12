@@ -1,6 +1,4 @@
-#include("../src/blockSQP.jl")
-#using .blockSQP
-using blockSQP
+using blockSQP2
 
 ###Example problem taken from blockSQP paper (Janka 2016) (sparse version)###
 
@@ -30,13 +28,13 @@ ub_con = Float64[0.0]
 x0 = Float64[10.0, 10.0]
 lambda0 = Float64[0., 0., 0.]
 
-prob = blockSQP.Problem(f,g, grad_f, jac_g,
+prob = blockSQP2.Problem(f,g, grad_f, jac_g,
                             lb_var, ub_var, lb_con, ub_con,
                             x0, lambda0, blockIdx = Int32[0, 1, 2])
-blockSQP.make_sparse!(prob, Int32(nnz), jac_g_nz, jac_g_row, jac_g_colind)
+blockSQP2.make_sparse!(prob, Int32(nnz), jac_g_nz, jac_g_row, jac_g_colind)
 
 
-opts = blockSQP.Options(
+opts = blockSQP2.Options(
                        maxiters = 100,
                        opt_tol = 1.0e-12,
                        feas_tol = 1.0e-12,
@@ -48,15 +46,15 @@ opts = blockSQP.Options(
 )
 
 
-stats = blockSQP.SQPstats("./")
+stats = blockSQP2.Stats("./")
 
-meth = blockSQP.Solver(prob, opts, stats)
+meth = blockSQP2.Solver(prob, opts, stats)
 
-blockSQP.init!(meth)
-ret = blockSQP.run!(meth, Int32(100), Int32(1))
-blockSQP.finish!(meth)
+init!(meth)
+ret = run!(meth, Int32(100), Int32(1))
+finish!(meth)
 
-x_opt = blockSQP.get_primal_solution(meth)
-lam_opt = blockSQP.get_dual_solution(meth)
+x_opt = get_primal_solution(meth)
+lam_opt = get_dual_solution(meth)
 
 print("Primal solution\n", x_opt, "\nDual solution\n", lam_opt, "\n")

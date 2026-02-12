@@ -4,7 +4,7 @@ mutable struct Stats
     function Stats(arg_obj::Ptr{Cvoid})
         newobj = new(arg_obj)
         function SQPstats_finalizer!(arg_stats::Stats)
-            BSQP = libblockSQP[]
+            BSQP = libblockSQP2[]
             ccall(@dlsym(BSQP, "delete_SQPstats"), Cvoid, (Ptr{Cvoid},), arg_stats.SQPstats_obj)
         end
         finalizer(SQPstats_finalizer!, newobj)
@@ -12,7 +12,7 @@ mutable struct Stats
 end
 
 function SQPstats(outpath::String)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     Ctrans = transcode(UInt8, outpath)
     if !all(Ctrans .<= 0x7f)
         error("SQPstats outpath may not contain non-ASCII characters")
@@ -51,7 +51,7 @@ mutable struct Solver
     Jul_Stats::Stats
     
     Solver(J_prob::Problem, J_opts::Options, J_stats::Stats) = begin        
-        BSQP = libblockSQP[]
+        BSQP = libblockSQP2[]
         new_Problemspec_obj = ccall(@dlsym(BSQP, "create_Problemspec"), Ptr{Cvoid}, (Cint, Cint), Cint(J_prob.nVar), Cint(J_prob.nCon))
         
         #Shared closure (Problem instance) of all callbacks
@@ -148,12 +148,12 @@ end
 
 
 function init!(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     ccall(@dlsym(BSQP, "SQPmethod_init"), Cvoid, (Ptr{Cvoid},), sol.SQPmethod_obj)
 end
 
 function run!(sol::Solver, maxIt::Integer, warmStart::Integer)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     ret::Cint = ccall(@dlsym(BSQP, "SQPmethod_run"), Cint, (Ptr{Cvoid}, Cint, Cint), sol.SQPmethod_obj, Cint(maxIt), Cint(warmStart))
     if ret == -1000 #Code for raised exception
         error(unsafe_string(ccall(@dlsym(BSQP, "get_error_message"), Ptr{Cchar}, ())))
@@ -162,32 +162,32 @@ function run!(sol::Solver, maxIt::Integer, warmStart::Integer)
 end
 
 function finish!(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     ccall(@dlsym(BSQP, "SQPmethod_finish"), Cvoid, (Ptr{Cvoid},), sol.SQPmethod_obj)
 end
 
 function get_itCount(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     return ccall(@dlsym(BSQP, "SQPstats_get_itCount"), Cint, (Ptr{Cvoid},), sol.Jul_Stats.SQPstats_obj)
 end
 
 #Allocate space for solution on julia side and call C method to fill it
 function get_primal_solution(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     xi_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar)
     ccall(@dlsym(BSQP, "SQPmethod_get_xi"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, pointer(xi_arr))
     return xi_arr
 end
 
 function get_dual_solution(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     lam_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon)
     ccall(@dlsym(BSQP, "SQPmethod_get_lambda"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, pointer(lam_arr))
     return -lam_arr[sol.Jul_Problem.nVar + 1 : end]
 end
 
 function get_dual_solution_full(sol::Solver)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     lam_arr = Array{Cdouble, 1}(undef, sol.Jul_Problem.nVar + sol.Jul_Problem.nCon)
     ccall(@dlsym(BSQP, "SQPmethod_get_lambda"), Cvoid, (Ptr{Cvoid}, Ptr{Cdouble}), sol.SQPmethod_obj, pointer(lam_arr))
     return -lam_arr

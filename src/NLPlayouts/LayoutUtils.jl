@@ -1,6 +1,3 @@
-
-
-# function _to_NamedTuple(arg::T, start::Vector{S}) where {T<:Integer, S <: Integer}
 function _to_NamedTuple(arg::Integer, start::Ref{I}) where I <: Integer
     return UnitRange(start[], (start[] += I(arg)) - I(1))
 end
@@ -9,7 +6,6 @@ function _to_NamedTuple(arg::UnitRange, start::Ref{I}) where I <: Integer
     start[] += length(arg)
     return arg .- I(first(arg)) .+ i
 end
-# function _to_NamedTuple(arg::Vector{Tuple{B, T}}, start::Ref{Int64}) where {B <: AbstractBlockDescriptor, T <: Union{Integer, AbstractVector, Union{Integer, AbstractVector}}}
 function _to_NamedTuple(arg::Vector{Tuple{BD, T}}, start::Ref{I}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}, I <: Integer}
     return to_NamedTuple(arg, start)
 end
@@ -46,6 +42,7 @@ to_UR(arg::Vector{Tuple{BD, T}}, start::Integer = 1) where {BD <: AbstractBlockD
 
 axlength(arg::ComponentArrays.Axis) = sum([length(arg[key]) for key in keys(arg)])
 
+
 function to_ViewAxis(arg::UnitRange, start::Ref{I}) where I <: Integer
     i = start[]
     start[] += length(arg)
@@ -73,14 +70,13 @@ end
 function blockDescriptors(arg::T) where {T <: Union{Integer, UnitRange}}
     return BlockDescriptor[]
 end
-
 function blockDescriptors(arg::Tuple{BD, T}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     return vcat([first(arg)], blockDescriptors(last(arg)))
 end
-
 function blockDescriptors(arg::AbstractVector{Tuple{BD, T}}) where {BD <: AbstractBlockDescriptor, T <: Union{AbstractVector, Integer}}
     return arg .|> blockDescriptors |> splat(vcat)
 end
+
 
 function Base.getindex(collection::ComponentArray, @nospecialize(ind::BlockDescriptor))
     return !isnothing(ind.parent) ? collection[ind.parent][ind.tag] : collection[ind.tag]
@@ -93,6 +89,7 @@ end
 function Base.view(collection::ComponentArray, @nospecialize(ind::BlockDescriptor))
     return !isnothing(ind.parent) ? view(view(collection, ind.parent), ind.tag) : view(collection, ind.tag)
 end
+
 
 function axsubkeys(ax::AbstractAxis, @nospecialize(ind::BlockDescriptor))
     return ax[ind].ax |> keys |> collect

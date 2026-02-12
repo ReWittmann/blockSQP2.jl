@@ -1,9 +1,9 @@
-using blockSQP
+using blockSQP2
 
 NZ = Float64[-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,1,1,1,1]
 ROW = Int32[0,1,6,0,2,6,1,3,6,2,3,6,2,4,6,3,5,6,4,5,6,4,6,5,6,6]
 COLIND = Int32[0,3,6,9,12,15,18,21,23,25,26]
-con_jac = blockSQP.Sparse_Matrix(7, 10, NZ, ROW, COLIND)
+con_jac = blockSQP2.Sparse_Matrix(7, 10, NZ, ROW, COLIND)
 
 
 full_block = Float64[0.75;-0.25;-0.25;; -0.25; 0.75; 0.25;; -0.25; 0.25; 1.25]
@@ -59,34 +59,34 @@ end
 A = vcat(ID,A_con)
 
 #Create structure data
-vblocks = Array{blockSQP.vblock, 1}(undef, 7)
-vblocks[1] = blockSQP.vblock(Int32(1), false)
+vblocks = Array{blockSQP2.vblock, 1}(undef, 7)
+vblocks[1] = blockSQP2.vblock(Int32(1), false)
 
-vblocks[2] = blockSQP.vblock(Int32(2), true)
-vblocks[3] = blockSQP.vblock(Int32(1), false)
+vblocks[2] = blockSQP2.vblock(Int32(2), true)
+vblocks[3] = blockSQP2.vblock(Int32(1), false)
 
-vblocks[4] = blockSQP.vblock(Int32(2), true)
-vblocks[5] = blockSQP.vblock(Int32(1), false)
+vblocks[4] = blockSQP2.vblock(Int32(2), true)
+vblocks[5] = blockSQP2.vblock(Int32(1), false)
 
-vblocks[6] = blockSQP.vblock(Int32(2), true)
-vblocks[7] = blockSQP.vblock(Int32(1), false)
+vblocks[6] = blockSQP2.vblock(Int32(2), true)
+vblocks[7] = blockSQP2.vblock(Int32(1), false)
 
-cblocks = Array{blockSQP.cblock, 1}(undef, 4)
-cblocks[1] = blockSQP.cblock(Int32(2))
-cblocks[2] = blockSQP.cblock(Int32(2))
-cblocks[3] = blockSQP.cblock(Int32(2))
-cblocks[4] = blockSQP.cblock(Int32(1))
+cblocks = Array{blockSQP2.cblock, 1}(undef, 4)
+cblocks[1] = blockSQP2.cblock(Int32(2))
+cblocks[2] = blockSQP2.cblock(Int32(2))
+cblocks[3] = blockSQP2.cblock(Int32(2))
+cblocks[4] = blockSQP2.cblock(Int32(1))
 
 hsizes = Int32[1, 3, 3, 3]
 
-targets = Array{blockSQP.condensing_target, 1}(undef, 1)
+targets = Array{blockSQP2.condensing_target, 1}(undef, 1)
 #3 stages, index of first free vblock, index after last dependent vblock, index of first condition, index after last condition
-targets[1] = blockSQP.condensing_target(Int32(3), Int32(0), Int32(7), Int32(0), Int32(3))
+targets[1] = blockSQP2.condensing_target(Int32(3), Int32(0), Int32(7), Int32(0), Int32(3))
 
-condenser = blockSQP.Condenser(vblocks, cblocks, hsizes, targets, Int32(2))
+condenser = blockSQP2.Condenser(vblocks, cblocks, hsizes, targets, Int32(2))
 
 print("Created condenser julia struct. Condensing info:\n")
-blockSQP.print_info(condenser)
+blockSQP2.print_info(condenser)
 
 
 #Call a QP solver
@@ -101,7 +101,7 @@ lam = results.y
 
 condensed_h, condensed_jacobian, condensed_hess, 
     condensed_lb_var, condensed_ub_var, condensed_lb_con, condensed_ub_con = 
-        blockSQP.full_condense!(condenser, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
+        blockSQP2.full_condense!(condenser, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
 
 conDENSEd_hess = condensed_hess[1]
 
@@ -150,7 +150,7 @@ display(xi_cond)
 print("\nDual solution of condensed QP:\n")
 display(lam_cond)
 
-xi_rest, lam_rest = blockSQP.recover_var_mult(condenser, xi_cond, lam_cond)
+xi_rest, lam_rest = blockSQP2.recover_var_mult(condenser, xi_cond, lam_cond)
 
 print("\nPrimal restored solution:\n")
 display(xi_rest)

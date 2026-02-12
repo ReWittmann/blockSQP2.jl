@@ -6,14 +6,14 @@ using Symbolics
 using OptimizationBase, OptimizationBase.SciMLBase
 
 using SparseArrays
-using blockSQP
+using blockSQP2
 
-function blockSQP.compute_hessian_blocks(A::AbstractMatrix)
+function blockSQP2.compute_hessian_blocks(A::AbstractMatrix)
     _A = SparseArrays.SparseMatrixCSC(A)
-    blockSQP.compute_hessian_blocks(_A)
+    blockSQP2.compute_hessian_blocks(_A)
 end
 
-function blockSQP.compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
+function blockSQP2.compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
     n = size(A,1) # assume quadratic matrix here, since it is a hessian
     blockIdx = [0]
     max_row = zeros(n)
@@ -37,7 +37,7 @@ function blockSQP.compute_hessian_blocks(A::SparseArrays.SparseMatrixCSC)
     return blockIdx
 end
 
-function blockSQP.compute_hessian_blocks(f, g, num_x::Integer,
+function blockSQP2.compute_hessian_blocks(f, g, num_x::Integer,
                  num_cons::Integer; parameters=[])
     lag(x, mu) = begin
         fx = f(x, parameters)
@@ -49,10 +49,10 @@ function blockSQP.compute_hessian_blocks(f, g, num_x::Integer,
     sparse_hess = Symbolics.hessian_sparsity(x -> lag(x, ones(num_cons)), input)
     @info "Hessian sparsity structure:"
     display(sparse_hess)
-    blockSQP.compute_hessian_blocks(sparse_hess)
+    blockSQP2.compute_hessian_blocks(sparse_hess)
 end
 
-function blockSQP.compute_hessian_blocks(prob::SciMLBase.OptimizationProblem)
+function blockSQP2.compute_hessian_blocks(prob::SciMLBase.OptimizationProblem)
     num_x = length(prob.u0)
     num_cons = prob.ucons === nothing ? 0 : length(prob.ucons)
     function cons_ip(cons,x)
@@ -61,7 +61,7 @@ function blockSQP.compute_hessian_blocks(prob::SciMLBase.OptimizationProblem)
             return cons
         end
     end
-    blockSQP.compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
+    blockSQP2.compute_hessian_blocks(prob.f.f, cons_ip, num_x, num_cons; parameters=prob.p)
 end
 
 

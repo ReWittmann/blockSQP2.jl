@@ -1,5 +1,5 @@
-using blockSQP
-using blockSQP.NLPlayouts
+using blockSQP2
+using blockSQP2.NLPlayouts
 
 
 matchings = BlockDescriptor{nlpMatchings}(tag = :matchings)
@@ -42,7 +42,7 @@ using LinearAlgebra
 con_jac_nz = Float64[-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,-2,1,1,-1,1,-1,-2,1,1,1,1,1,1]
 con_jac_row = Int32[0,1,6,0,2,6,1,3,6,2,3,6,2,4,6,3,5,6,4,5,6,4,6,5,6,6]
 con_jac_colind = Int32[0,3,6,9,12,15,18,21,23,25,26]
-con_jac = blockSQP.Sparse_Matrix(7, 10, con_jac_nz, con_jac_row, con_jac_colind)
+con_jac = blockSQP2.Sparse_Matrix(7, 10, con_jac_nz, con_jac_row, con_jac_colind)
 
 
 full_block = Float64[0.75;-0.25;-0.25;; -0.25; 0.75; 0.25;; -0.25; 0.25; 1.25]
@@ -60,8 +60,7 @@ ub_var = Float64[0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
 lb_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, -1.9]
 ub_con = Float64[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.9]
 
-using blockSQP
-condenser = blockSQP.Condenser(layout)
+condenser = blockSQP2.Condenser(layout)
 
 H = zeros(10,10)
 H[1,1] = hess[1][1,1]
@@ -96,7 +95,7 @@ lam = results.y
 #Condensed QP
 condensed_h, condensed_jacobian, condensed_hess,
     condensed_lb_var, condensed_ub_var, condensed_lb_con, condensed_ub_con = 
-    blockSQP.full_condense!(condenser, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
+    blockSQP2.full_condense!(condenser, grad_obj, con_jac, hess, lb_var, ub_var, lb_con, ub_con)
 
 conDENSEd_hess = condensed_hess[1]
 conDENSEd_jacobian = zeros(7,4)
@@ -115,7 +114,7 @@ condensed_results = QPALM.solve!(model)
 
 xi_cond = condensed_results.x
 lam_cond = condensed_results.y
-xi_rest, lam_rest = blockSQP.recover_var_mult(condenser, xi_cond, lam_cond)
+xi_rest, lam_rest = blockSQP2.recover_var_mult(condenser, xi_cond, lam_cond)
 
 print("\n||xi - xi_rest||_∞ = ", maximum(xi - xi_rest))
 print("\n||lam - lam_rest||_∞ ", maximum(lam - lam_rest), "\n")

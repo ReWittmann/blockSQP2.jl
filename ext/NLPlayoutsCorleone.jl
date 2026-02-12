@@ -1,9 +1,9 @@
 module NLPlayoutsCorleone
 using LuxCore
 using Corleone
-using blockSQP.NLPlayouts
+using blockSQP2.NLPlayouts
 
-@info "Loading Corleone.jl extension for blockSQP.NLPlayouts..." 
+@info "Loading Corleone.jl extension for blockSQP2.NLPlayouts..." 
 
 #Prefixes: s - states, p - paramters, c - controls
 #Suffixes: B - BlockDescriptor, L - Layout (::TupleBD[]), SUB - Sublayout (::TupleBD)

@@ -1,4 +1,4 @@
-module blockSQP
+module blockSQP2
     using EnumX, SparseArrays
     using Reexport
 	import Base.setproperty!, Base.getproperty
@@ -18,16 +18,16 @@ module blockSQP
     end
     
     const hasjll::Bool = false        
-    const libblockSQP = Ref{Ptr{Nothing}}(Ptr{Nothing}())
+    const libblockSQP2 = Ref{Ptr{Nothing}}(Ptr{Nothing}())
     function __init__()
-        libblockSQP[] = try
-            Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP_jl"))
+        libblockSQP2[] = try
+            Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP2_jl"))
         catch blockSQP_load_error
             @info "Could not load blockSQP dynamic library from bin folder." blockSQP_load_error "\nLoading blockSQP_jll instead\n"
             if !hasjll
                 error("Nether local blockSQP dynamic library nor blockSQP_jll are available")
             end
-            Base.Libc.Libdl.dlopen(blockSQP_jll.libblockSQP)
+            Base.Libc.Libdl.dlopen(blockSQP_jll.libblockSQP2)
         end
     end
     
@@ -50,9 +50,9 @@ module blockSQP
     """
     Struct to hold Optimization.jl solver.
     """
-    struct blockSQPOptimizer end
-    Optimizer() = blockSQPOptimizer()
-    export blockSQPOptimizer
+    struct Optimizer end
+    BlockSQP2Optimizer = Optimizer
+    export BlockSQP2Optimizer
     
     # Structs to hold structure data used for scaling and condensing
     struct vblock
@@ -70,12 +70,12 @@ module blockSQP
     include("condenser.jl")
     
     include("problem.jl")
-    BlockSQPProblem = Problem
-    export BlockSQPProblem
+    BlockSQP2Problem = Problem
+    export BlockSQP2Problem
 
     include("options.jl")
-    BlockSQPOptions = Options
-    export BlockSQPOptions
+    BlockSQP2Options = Options
+    export BlockSQP2Options
     
     include("utils.jl")
     # Some utilities for computing the block structure using Symbolics.
@@ -84,9 +84,11 @@ module blockSQP
     end
 
     include("solver.jl")
-    BlockSQPSolver = Solver
-    export BlockSQPSolver
-    export init!, run!, finish!, get_itCount, get_primal_solution, get_dual_solution, get_dual_solution_full
+    BlockSQP2Stats = Stats
+    BlockSQP2Solver = Solver
+    export BlockSQP2Stats, BlockSQP2Solver, 
+           init!, run!, finish!, get_itCount, 
+           get_primal_solution, get_dual_solution, get_dual_solution_full
 
     include("NLPlayouts/NLPlayouts.jl")
     

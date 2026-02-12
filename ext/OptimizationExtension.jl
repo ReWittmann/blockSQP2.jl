@@ -1,20 +1,20 @@
 module OptimizationExtension
 
-using blockSQP, blockSQP.SparseArrays, blockSQP.NLPlayouts
+using blockSQP2, blockSQP2.SparseArrays, blockSQP2.NLPlayouts
 using OptimizationBase, OptimizationBase.SciMLBase
 
-SciMLBase.allowsbounds(::blockSQPOptimizer) = true
-SciMLBase.allowsconstraints(::blockSQPOptimizer) = true
-SciMLBase.allowscallback(::blockSQPOptimizer) = true
-SciMLBase.requiresgradient(::blockSQPOptimizer) = true
-SciMLBase.requiresconsjac(::blockSQPOptimizer) = true
-SciMLBase.supports_opt_cache_interface(::blockSQPOptimizer) = true
-SciMLBase.has_init(::blockSQPOptimizer) = true
+SciMLBase.allowsbounds(::BlockSQP2Optimizer) = true
+SciMLBase.allowsconstraints(::BlockSQP2Optimizer) = true
+SciMLBase.allowscallback(::BlockSQP2Optimizer) = true
+SciMLBase.requiresgradient(::BlockSQP2Optimizer) = true
+SciMLBase.requiresconsjac(::BlockSQP2Optimizer) = true
+SciMLBase.supports_opt_cache_interface(::BlockSQP2Optimizer) = true
+SciMLBase.has_init(::BlockSQP2Optimizer) = true
 
 @info "Loading Optimization(Base).jl extension for blockSQP..."
 
 function SciMLBase.__init(
-            prob::SciMLBase.OptimizationProblem, opt::blockSQPOptimizer,
+            prob::SciMLBase.OptimizationProblem, opt::BlockSQP2Optimizer,
             ;
             callback = OptimizationBase.DEFAULT_CALLBACK,
             progress = false, maxiters = nothing,
@@ -71,7 +71,7 @@ end
 
 function SciMLBase.__solve(
     cache::OptimizationCache{O,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
- ) where {O<:blockSQPOptimizer,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
+ ) where {O<:BlockSQP2Optimizer,IIP,F,RC,LB,UB,LC,UC,S,P,C,M}
     local x
     
     num_cons = cache.ucons === nothing ? 0 : length(cache.ucons)

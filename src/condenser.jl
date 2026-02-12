@@ -41,7 +41,7 @@ mutable struct Condenser
     Matrix_lambda_rest::Ptr{Cvoid}
     
     Condenser(arg_vblocks::Vector{vblock}, arg_cblocks::Vector{cblock}, arg_hsizes::Vector{INT_T}, arg_targets::Vector{condensing_target}, arg_dep_bounds::INT_T = 2) where INT_T <: Integer = begin
-        BSQP = libblockSQP[]
+        BSQP = libblockSQP2[]
         new_vblock_array_obj = ccall(@dlsym(BSQP, "create_vblock_array"), Ptr{Cvoid}, (Cint,), Cint(length(arg_vblocks)))
         for i = 1:length(arg_vblocks)
             ccall(@dlsym(BSQP, "vblock_array_set"), Cvoid, (Ptr{Cvoid}, Cint, Cint, Cchar), new_vblock_array_obj, Cint(i - 1), Cint(arg_vblocks[i].size), Cchar(arg_vblocks[i].dependent))
@@ -104,7 +104,7 @@ mutable struct Condenser
                             )
         
         function Condenser_finalizer!(J_cond::Condenser)
-            BSQP = libblockSQP[]
+            BSQP = libblockSQP2[]
             ccall(@dlsym(BSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_rest)
             ccall(@dlsym(BSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_xi_rest)
             ccall(@dlsym(BSQP, "delete_Matrix"), Cvoid, (Ptr{Cvoid},), J_cond.Matrix_lambda_cond)
@@ -145,12 +145,12 @@ end
 Condenser(::Nothing) = nothing
 
 function print_info(J_cond::Condenser)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     ccall(@dlsym(BSQP, "Condenser_print_info"), Cvoid, (Ptr{Cvoid},), J_cond.Condenser_obj)
 end
 
 function condensed_nBlocks(J_cond::Condenser)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     return ccall(@dlsym(BSQP, "Condenser_condensed_nBlocks"), Cint, (Ptr{Cvoid},), J_cond.Condenser_obj)
 end
 
@@ -175,7 +175,7 @@ end
 
 
 function full_condense!(J_cond::Condenser, grad_obj::Vector{Float64}, constr_jac::Sparse_Matrix, hess::Vector{Matrix{Float64}}, lb_var::Vector{Float64}, ub_var::Vector{Float64}, lb_con::Vector{Float64}, ub_con::Vector{Float64})
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     cond = J_cond.Condenser_obj
     
     nVar = ccall(@dlsym(BSQP, "Condenser_nVar"), Cint, (Ptr{Cvoid},), cond)
@@ -329,7 +329,7 @@ function full_condense!(J_cond::Condenser, grad_obj::Vector{Float64}, constr_jac
 end
 
 function recover_var_mult(J_cond::Condenser, xi_cond::Array{Float64, 1}, lambda_cond::Array{Float64, 1})
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     cond = J_cond.Condenser_obj
     
     nVar = ccall(@dlsym(BSQP, "Condenser_nVar"), Cint, (Ptr{Cvoid},), cond)

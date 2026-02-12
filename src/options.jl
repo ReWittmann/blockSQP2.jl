@@ -153,7 +153,7 @@ end
 
 
 function create_cxx_options(opts::Options)
-    BSQP = libblockSQP[]
+    BSQP = libblockSQP2[]
     SQPoptions_obj::Ptr{Cvoid} = ccall(@dlsym(BSQP, "create_SQPoptions"), Ptr{Cvoid}, ())
     QPsolver_options_obj::Ptr{Cvoid} = Ptr{Cvoid}()
     # Constants
