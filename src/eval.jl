@@ -94,8 +94,8 @@ function evaluate_sparse(Prob::Ptr{Nothing}, xi::ConstCxxPtr{Float64}, lam::Cons
         if dmode == 2
             hess_arr = unsafe_wrap(Array{CxxPtr{Float64}, 1}, hess.cpp_object, Jprob.n_hessblocks, own = true)
 
-            s_last = Jprob.blockIdx[Jprob.n_hessblocks + 1] - Jprob.blockIdx[Jprob.n_hessblocks]
-            hess_last = unsafe_wrap(Array{Float64,1}, hess_arr[Jprob.n_hessblocks].cpp_object, Int32((s_last*(s_last+Int32(1)))//(Int32(2))), own = false)
+            s_last = Jprob.blockIdx[Jprob.n_hessblocks + 1] - Jprob.blockIdx[Jprob.n_hesslbocks]
+            hess_last = unsafe_wrap(Array{Float64,1}, hess_arr[Jprob.n_hessblocks].cpp_object, Int32((s*(s+Int32(1)))//(Int32(2))), own = false)
             hess_last[:] = Jprob.last_hessBlock(xi_arr, lam_arr[Jprob.nVar + 1 : Jprob.nVar + Jprob.nCon])
         end
 
