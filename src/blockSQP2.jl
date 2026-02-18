@@ -17,17 +17,24 @@ module blockSQP2
         end
     end
     
-    const hasjll::Bool = false        
+    # const hasjll::Bool = try
+    import LinearAlgebra
+    import OpenBLAS32_jll
+    import blockSQP2_jll
+
+
     const libblockSQP2 = Ref{Ptr{Nothing}}(Ptr{Nothing}())
     function __init__()
         libblockSQP2[] = try
+            throw(ErrorException("."))
             Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP2_jl"))
-        catch blockSQP_load_error
-            @info "Could not load blockSQP dynamic library from bin folder." blockSQP_load_error "\nLoading blockSQP2_jll instead\n"
-            if !hasjll
-                error("Nether local blockSQP dynamic library nor blockSQP2_jll are available")
-            end
-            Base.Libc.Libdl.dlopen(blockSQP2_jll.libblockSQP2)
+        catch blockSQP2_load_error
+            @info "Could not load blockSQP dynamic library from bin folder." blockSQP2_load_error "\nTrying blockSQP2_jll instead\n"
+            # if !hasjll
+            #     error("Nether local blockSQP dynamic library nor blockSQP2_jll are available")
+            # end
+            LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path; verbose = true)
+            Base.Libc.Libdl.dlopen(blockSQP2_jll.libblockSQP2_jl)
         end
     end
     
