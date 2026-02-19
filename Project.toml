@@ -51,7 +51,7 @@ SparseConnectivityTracer = "1"
 SparseMatrixColorings = ">=0.4.23"
 Symbolics = ">= 6.38"
 Test = "1"
-blockSQP2_jll = "0.0.2"
+blockSQP2_jll = "0.0.7"
 julia = "1.6 - 1.11"
 
 [extras]

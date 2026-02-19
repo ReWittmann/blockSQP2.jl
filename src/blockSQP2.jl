@@ -29,11 +29,11 @@ module blockSQP2
             throw(ErrorException("."))
             Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP2_jl"))
         catch blockSQP2_load_error
-            @info "Could not load blockSQP dynamic library from bin folder." blockSQP2_load_error "\nTrying blockSQP2_jll instead\n"
+            # @info "Could not load blockSQP dynamic library from bin folder." blockSQP2_load_error "\nTrying blockSQP2_jll instead\n"
             # if !hasjll
             #     error("Nether local blockSQP dynamic library nor blockSQP2_jll are available")
             # end
-            LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path; verbose = true)
+            LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path)
             Base.Libc.Libdl.dlopen(blockSQP2_jll.libblockSQP2_jl)
         end
     end
