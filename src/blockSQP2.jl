@@ -17,19 +17,26 @@ module blockSQP2
         end
     end
     
-    const hasjll::Bool = false        
+    #Module holder
     const libblockSQP2 = Ref{Ptr{Nothing}}(Ptr{Nothing}())
-    function __init__()
-        libblockSQP2[] = try
-            Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP2_jl"))
-        catch blockSQP_load_error
-            @info "Could not load blockSQP dynamic library from bin folder." blockSQP_load_error "\nLoading blockSQP2_jll instead\n"
-            if !hasjll
-                error("Nether local blockSQP dynamic library nor blockSQP2_jll are available")
-            end
-            Base.Libc.Libdl.dlopen(blockSQP2_jll.libblockSQP2)
+    
+    ### Release version: Load blockSQP2 via blockSQP2_jll ###
+        # import blockSQP2_jll
+        # import LinearAlgebra
+        # import OpenBLAS32_jll
+        
+        # function __init__()
+        #     LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path)
+        #     libblockSQP2[] = Base.Libc.Libdl.dlopen(blockSQP2_jll.libblockSQP2_jl)
+        # end
+    ### End ###
+    
+    ### Development version: Use locally built blockSQP2_jl ###
+        function __dev__()
+            libblockSQP2[] = Base.Libc.Libdl.dlopen(joinpath(Base.@__DIR__, "..", "bin", "libblockSQP2_jl"))
         end
-    end
+        __init__() = __dev__()
+    ### End ###
     
     
 	function fnothing(args...)
@@ -56,12 +63,12 @@ module blockSQP2
     
     # Structs to hold structure data used for scaling and condensing
     struct vblock
-        size::Integer
+        size::Int64
         dependent::Bool 
     end
 
     struct cblock
-        size::Integer
+        size::Int64
     end
 
     

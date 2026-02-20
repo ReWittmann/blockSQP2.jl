@@ -23,7 +23,7 @@ prob = blockSQP2.Problem(f,g, grad_f, jac_g,
 
 
 
-QPopts = qpOASES_options(sparsityLevel = 0,
+QPopts = blockSQP2.qpOASESoptions(sparsityLevel = 0,
                          printLevel = 0,
                          terminationTolerance=1.0e-10
                          )                            
